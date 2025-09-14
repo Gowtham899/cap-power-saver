@@ -14,7 +14,34 @@ const config: CapacitorConfig = {
       iconColor: "#488AFF",
       sound: "beep.wav",
     },
+    Device: {
+      androidPermissions: [
+        "android.permission.BATTERY_STATS",
+      ]
+    },
+    Network: {
+      androidPermissions: [
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_WIFI_STATE"
+      ]
+    }
   },
+  android: {
+    allowMixedContent: true,
+    captureExternalUrls: false,
+    webContentsDebuggingEnabled: true,
+    permissions: [
+      "android.permission.WAKE_LOCK",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
+      "android.permission.FOREGROUND_SERVICE"
+    ]
+  },
+  ios: {
+    contentInset: 'automatic',
+    scrollEnabled: true,
+    limitsNavigationsToAppBoundDomains: false,
+    allowsLinkPreview: false
+  }
 };
 
 export default config;
