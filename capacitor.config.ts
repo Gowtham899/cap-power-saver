@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.8d915f617b054570b15db3fd54ebbfaa',
-  appName: 'Device Health Monitor',
+  appId: 'cap.gowtham.cappowersaver',
+  appName: 'Smart saver',
   webDir: 'dist',
   server: {
     url: 'https://8d915f61-7b05-4570-b15d-b3fd54ebbfaa.lovableproject.com?forceHideBadge=true',
