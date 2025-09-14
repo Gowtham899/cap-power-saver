@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'cap.gowtham.smartsaver',
+  appId: 'com.gowtham.smartsaver',
   appName: 'Smart saver',
   webDir: 'dist',
   server: {
