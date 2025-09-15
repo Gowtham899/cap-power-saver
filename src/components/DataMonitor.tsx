@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Wifi, TrendingUp, Smartphone, RefreshCw, Activity } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Wifi, TrendingUp, Smartphone, RefreshCw, Activity, Globe, Video, Music, Camera, Download, Upload } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { deviceService, DataUsage } from "@/services/deviceService";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area, CartesianGrid, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
 
 export function DataMonitor() {
@@ -16,6 +17,7 @@ export function DataMonitor() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<number>(0);
   const [isRealTimeMode, setIsRealTimeMode] = useState(true);
+  const [appUsageData, setAppUsageData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchDataUsage = async () => {
@@ -23,6 +25,19 @@ export function DataMonitor() {
         const usage = await deviceService.getDataUsage();
         setDataUsage(usage);
         setLastUpdate(Date.now());
+        
+        // Generate realistic app usage data with categories
+        const mockApps = [
+          { name: 'YouTube', category: 'Video', usage: Math.floor(Math.random() * 800 + 200), color: '#FF0000', icon: Video },
+          { name: 'Instagram', category: 'Social', usage: Math.floor(Math.random() * 600 + 150), color: '#E4405F', icon: Camera },
+          { name: 'Spotify', category: 'Music', usage: Math.floor(Math.random() * 400 + 100), color: '#1DB954', icon: Music },
+          { name: 'WhatsApp', category: 'Messaging', usage: Math.floor(Math.random() * 300 + 80), color: '#25D366', icon: Smartphone },
+          { name: 'Chrome', category: 'Browser', usage: Math.floor(Math.random() * 500 + 120), color: '#4285F4', icon: Globe },
+          { name: 'Netflix', category: 'Video', usage: Math.floor(Math.random() * 700 + 180), color: '#E50914', icon: Video },
+          { name: 'TikTok', category: 'Social', usage: Math.floor(Math.random() * 550 + 140), color: '#000000', icon: Video },
+          { name: 'Downloads', category: 'System', usage: Math.floor(Math.random() * 200 + 50), color: '#6B7280', icon: Download },
+        ];
+        setAppUsageData(mockApps);
         
         // Check for data usage alerts
         const usedMB = Math.floor(usage.totalUsed / (1024 * 1024));
@@ -63,10 +78,25 @@ export function DataMonitor() {
     usage: Math.round(usage / (1024 * 1024)), // Convert to MB
   }));
 
-  const weeklyChartData = Array.from({ length: 7 }, (_, i) => ({
-    day: i + 1,
-    usage: Math.floor(Math.random() * 500) + 100, // Mock weekly trend data
-  }));
+  const weeklyChartData = [
+    { day: 'Week 1', usage: 850, trend: 800 },
+    { day: 'Week 2', usage: 920, trend: 880 },
+    { day: 'Week 3', usage: 760, trend: 790 },
+    { day: 'Week 4', usage: 1100, trend: 950 },
+  ];
+
+  // Category breakdown for pie chart
+  const categoryData = appUsageData.reduce((acc: any[], app) => {
+    const existing = acc.find(item => item.category === app.category);
+    if (existing) {
+      existing.usage += app.usage;
+    } else {
+      acc.push({ category: app.category, usage: app.usage });
+    }
+    return acc;
+  }, []);
+
+  const categoryColors = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6B7280'];
 
   if (loading) {
     return (
@@ -217,56 +247,168 @@ export function DataMonitor() {
         </CardContent>
       </Card>
 
-      {/* App Usage Breakdown */}
+      {/* App Usage Analysis with Enhanced Charts */}
       <Card className="bg-gradient-card border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Smartphone className="h-5 w-5 text-tech-purple" />
-            Top Data Consumers
+            App Usage Analysis
           </CardTitle>
+          <CardDescription>Detailed breakdown by apps and categories</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[
-              { name: "Video Streaming", usage: dataUsage.totalUsed * 0.4, color: "tech-purple" },
-              { name: "Social Media", usage: dataUsage.totalUsed * 0.25, color: "tech-blue" },
-              { name: "Web Browsing", usage: dataUsage.totalUsed * 0.15, color: "tech-green" },
-              { name: "Music Streaming", usage: dataUsage.totalUsed * 0.1, color: "warning" },
-              { name: "Other Apps", usage: dataUsage.totalUsed * 0.1, color: "muted" },
-            ].map((app, index) => (
-              <div key={app.name} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full bg-${app.color}`}></div>
-                  <span className="font-medium">{app.name}</span>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {formatBytes(app.usage)}
-                </div>
-              </div>
-            ))}
+        <CardContent className="space-y-6">
+          {/* Category Distribution Pie Chart */}
+          <div>
+            <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Usage by Category
+            </h4>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    dataKey="usage"
+                    nameKey="category"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label={({ category, usage }) => `${category}: ${usage}MB`}
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={categoryColors[index % categoryColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: any) => [`${value}MB`, 'Usage']} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Top Apps List */}
+          <div>
+            <h4 className="text-sm font-medium mb-3">Top Data Consumers</h4>
+            <div className="space-y-3">
+              {appUsageData
+                .sort((a, b) => b.usage - a.usage)
+                .slice(0, 8)
+                .map((app, index) => {
+                  const Icon = app.icon;
+                  const totalUsage = appUsageData.reduce((sum, a) => sum + a.usage, 0);
+                  const percentage = Math.round((app.usage / totalUsage) * 100);
+                  
+                  return (
+                    <div key={app.name} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg" style={{ backgroundColor: `${app.color}20` }}>
+                          <Icon className="h-4 w-4" style={{ color: app.color }} />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{app.name}</p>
+                          <p className="text-xs text-muted-foreground">{app.category}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-sm">{app.usage}MB</p>
+                        <p className="text-xs text-muted-foreground">{percentage}%</p>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+
+          {/* Usage Trend Area Chart */}
+          <div>
+            <h4 className="text-sm font-medium mb-3">Weekly Usage Trend</h4>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={weeklyChartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis dataKey="day" className="text-xs" />
+                  <YAxis className="text-xs" />
+                  <Tooltip 
+                    formatter={(value: any) => [`${value}MB`, 'Usage']}
+                    labelFormatter={(label) => `Week: ${label}`}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="usage" 
+                    stroke="hsl(var(--tech-blue))" 
+                    fill="url(#colorUsage)"
+                    strokeWidth={2}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="trend" 
+                    stroke="hsl(var(--tech-green))" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                  />
+                  <defs>
+                    <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--tech-blue))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(var(--tech-blue))" stopOpacity={0.05}/>
+                    </linearGradient>
+                  </defs>
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Alert Settings */}
+      {/* Data Alerts & 200MB Tracking */}
       <Card className="bg-gradient-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-lg">Data Alerts</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Activity className="h-5 w-5 text-tech-green" />
+            Data Alerts & Tracking
+          </CardTitle>
+          <CardDescription>200MB increment alerts and monitoring</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Alert Frequency</span>
-              <span className="text-tech-blue">Every 200MB</span>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">Alert Frequency</p>
+                <p className="text-lg font-semibold">Every 200MB</p>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">Next Alert</p>
+                <p className="text-lg font-semibold text-tech-blue">
+                  {Math.ceil((Math.floor(dataUsage.totalUsed / (1024 * 1024)) / 200) + 1) * 200}MB
+                </p>
+              </div>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Next Alert At</span>
-              <span className="text-tech-green">
-                {formatBytes(Math.ceil(dataUsage.totalUsed / (200 * 1024 * 1024)) * 200 * 1024 * 1024)}
-              </span>
+            
+            {/* 200MB Progress Tracking */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Progress to Next Alert</span>
+                <span>
+                  {Math.floor(dataUsage.totalUsed / (1024 * 1024)) % 200}MB / 200MB
+                </span>
+              </div>
+              <Progress 
+                value={((Math.floor(dataUsage.totalUsed / (1024 * 1024)) % 200) / 200) * 100} 
+                className="h-3"
+              />
             </div>
-            <div className="text-xs text-muted-foreground pt-2 border-t border-border/50">
-              Automatic notifications help you track mobile data consumption
+
+            {/* Alert History */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Recent 200MB Alerts</h4>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {Array.from({ length: Math.floor(Math.floor(dataUsage.totalUsed / (1024 * 1024)) / 200) }, (_, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs p-2 bg-muted/30 rounded">
+                    <span>Alert #{i + 1}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {(i + 1) * 200}MB reached
+                    </Badge>
+                  </div>
+                )).reverse().slice(0, 5)}
+              </div>
             </div>
           </div>
         </CardContent>

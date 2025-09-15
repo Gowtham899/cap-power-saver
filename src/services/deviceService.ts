@@ -164,7 +164,7 @@ class DeviceService {
     const battery = await this.getBatteryInfo();
     const level = battery.level;
     
-    // Check for battery level alerts
+    // Check for battery level alerts at specified thresholds
     const alertLevels = [5, 10, 15, 20, 80, 85, 90, 95, 100];
     
     if (alertLevels.includes(level) && level !== this.lastBatteryLevel) {
@@ -180,7 +180,7 @@ class DeviceService {
     const storage = await this.getStorageInfo();
     const percentage = storage.percentageUsed;
     
-    // Check for storage alerts at specific levels
+    // Check for storage alerts at specified thresholds: 80%, 85%, 90%, 95%, 100%
     const alertLevels = [80, 85, 90, 95, 100];
     const currentLevel = Math.floor(percentage);
     
@@ -242,7 +242,7 @@ class DeviceService {
     });
 
     // Start 10-second recurring alarm for critical levels
-    if (level <= 15 || (level >= 95 && isCharging)) {
+    if (level <= 20 || level >= 80) {
       await this.startRecurringAlarm('battery', title, body);
     }
   }
@@ -262,8 +262,8 @@ class DeviceService {
         }]
       });
 
-      // Start 10-second recurring alarm for critical levels (90%+)
-      if (percentage >= 90) {
+      // Start 10-second recurring alarm for critical levels (80%+)
+      if (percentage >= 80) {
         await this.startRecurringAlarm('storage', title, body);
       }
     }
@@ -285,8 +285,8 @@ class DeviceService {
         }]
       });
 
-      // Start 10-second recurring alarm for high data usage (1GB+)
-      if (roundedMB >= 1000) {
+      // Start 10-second recurring alarm for high data usage (400MB+)
+      if (roundedMB >= 400) {
         await this.startRecurringAlarm('data', title, body);
       }
     }

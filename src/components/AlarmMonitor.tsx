@@ -32,9 +32,9 @@ export const AlarmMonitor = () => {
       case 'battery':
         return { label: 'Battery Critical', color: 'destructive' as const, icon: '🔋' };
       case 'storage':
-        return { label: 'Storage Full', color: 'secondary' as const, icon: '💾' };
+        return { label: 'Storage Alert', color: 'secondary' as const, icon: '💾' };
       case 'data':
-        return { label: 'High Data Usage', color: 'default' as const, icon: '📊' };
+        return { label: 'Data Usage Alert', color: 'default' as const, icon: '📊' };
       default:
         return { label: type, color: 'secondary' as const, icon: '⚠️' };
     }
@@ -116,15 +116,15 @@ export const AlarmMonitor = () => {
           <h4 className="text-sm font-medium">Alarm Configuration:</h4>
           <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground">
             <div className="flex justify-between">
-              <span>Battery Critical (≤15% or ≥95% charging):</span>
+              <span>Battery Alerts (5%, 10%, 15%, 20%, 80%, 85%, 90%, 95%, 100%):</span>
               <Badge variant="outline">10s intervals</Badge>
             </div>
             <div className="flex justify-between">
-              <span>Storage Critical (≥90% full):</span>
+              <span>Storage Alerts (80%, 85%, 90%, 95%, 100%):</span>
               <Badge variant="outline">10s intervals</Badge>
             </div>
             <div className="flex justify-between">
-              <span>Data Usage High (≥1GB):</span>
+              <span>Data Usage (Every 200MB + alarms at 400MB+):</span>
               <Badge variant="outline">10s intervals</Badge>
             </div>
             <div className="flex justify-between">
