@@ -45,6 +45,9 @@ class DeviceService {
   private dataUsageStartTime: number = Date.now();
   private backgroundTaskId: string | null = null;
   private alertLogs: AlertLog[] = [];
+  private activeAlarms: Map<string, NodeJS.Timeout> = new Map();
+  private alarmDuration: number = 60000; // 60 seconds total alarm duration
+  private alarmInterval: number = 10000; // 10 seconds between each alarm
 
   async initialize() {
     // Request notification permissions
@@ -228,6 +231,7 @@ class DeviceService {
       body = `Battery is low (${level}%). Consider charging your device.`;
     }
 
+    // Send immediate notification
     await LocalNotifications.schedule({
       notifications: [{
         title,
@@ -236,32 +240,55 @@ class DeviceService {
         schedule: { at: new Date(Date.now() + 1000) },
       }]
     });
+
+    // Start 10-second recurring alarm for critical levels
+    if (level <= 15 || (level >= 95 && isCharging)) {
+      await this.startRecurringAlarm('battery', title, body);
+    }
   }
 
   async sendStorageNotification(percentage: number) {
     if (percentage >= 80) {
+      const title = `Storage ${percentage}% Full`;
+      const body = `Your device storage is running low. Consider cleaning up files.`;
+      
+      // Send immediate notification
       await LocalNotifications.schedule({
         notifications: [{
-          title: `Storage ${percentage}% Full`,
-          body: `Your device storage is running low. Consider cleaning up files.`,
+          title,
+          body,
           id: Date.now(),
           schedule: { at: new Date(Date.now() + 1000) },
         }]
       });
+
+      // Start 10-second recurring alarm for critical levels (90%+)
+      if (percentage >= 90) {
+        await this.startRecurringAlarm('storage', title, body);
+      }
     }
   }
 
   async sendDataUsageNotification(usedMB: number) {
     const roundedMB = Math.floor(usedMB / 200) * 200; // Every 200MB
     if (roundedMB > 0 && roundedMB % 200 === 0) {
+      const title = `Data Usage Alert`;
+      const body = `You've used ${roundedMB}MB of mobile data this session.`;
+      
+      // Send immediate notification
       await LocalNotifications.schedule({
         notifications: [{
-          title: `Data Usage Alert`,
-          body: `You've used ${roundedMB}MB of mobile data this session.`,
+          title,
+          body,
           id: Date.now(),
           schedule: { at: new Date(Date.now() + 1000) },
         }]
       });
+
+      // Start 10-second recurring alarm for high data usage (1GB+)
+      if (roundedMB >= 1000) {
+        await this.startRecurringAlarm('data', title, body);
+      }
     }
   }
 
@@ -325,7 +352,62 @@ class DeviceService {
     }
   }
 
+  private async startRecurringAlarm(type: string, title: string, body: string) {
+    const alarmKey = `${type}_alarm`;
+    
+    // Clear any existing alarm for this type
+    await this.stopRecurringAlarm(alarmKey);
+    
+    let alarmCount = 0;
+    const maxAlarms = Math.floor(this.alarmDuration / this.alarmInterval); // 6 alarms in 60 seconds
+    
+    const alarmInterval = setInterval(async () => {
+      alarmCount++;
+      
+      // Send notification with alarm count
+      await LocalNotifications.schedule({
+        notifications: [{
+          title: `🚨 ALERT ${alarmCount}/${maxAlarms}: ${title}`,
+          body: `${body} - Recurring alert every 10 seconds`,
+          id: Date.now() + alarmCount,
+          schedule: { at: new Date(Date.now() + 100) },
+        }]
+      });
+      
+      // Stop after reaching max alarms
+      if (alarmCount >= maxAlarms) {
+        await this.stopRecurringAlarm(alarmKey);
+      }
+    }, this.alarmInterval);
+    
+    // Store the alarm interval
+    this.activeAlarms.set(alarmKey, alarmInterval);
+    
+    // Auto-stop alarm after total duration
+    setTimeout(() => {
+      this.stopRecurringAlarm(alarmKey);
+    }, this.alarmDuration);
+  }
+
+  private async stopRecurringAlarm(alarmKey: string) {
+    if (this.activeAlarms.has(alarmKey)) {
+      const interval = this.activeAlarms.get(alarmKey);
+      if (interval) {
+        clearInterval(interval);
+      }
+      this.activeAlarms.delete(alarmKey);
+    }
+  }
+
+  async stopAllAlarms() {
+    for (const [key, interval] of this.activeAlarms.entries()) {
+      clearInterval(interval);
+    }
+    this.activeAlarms.clear();
+  }
+
   destroy() {
+    // Clear all monitoring intervals
     if (this.batteryCheckInterval) {
       clearInterval(this.batteryCheckInterval);
       this.batteryCheckInterval = null;
@@ -338,6 +420,9 @@ class DeviceService {
       clearInterval(this.dataCheckInterval);
       this.dataCheckInterval = null;
     }
+    
+    // Stop all recurring alarms
+    this.stopAllAlarms();
   }
 }
 

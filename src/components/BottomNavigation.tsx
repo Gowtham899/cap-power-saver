@@ -1,4 +1,4 @@
-import { Battery, HardDrive, Wifi, Heart, Activity } from "lucide-react";
+import { Battery, HardDrive, Wifi, Heart, Activity, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavigationProps {
@@ -10,6 +10,7 @@ const tabs = [
   { id: "battery", label: "Battery", icon: Battery },
   { id: "storage", label: "Storage", icon: HardDrive },
   { id: "data", label: "Data", icon: Wifi },
+  { id: "alarms", label: "Alarms", icon: Bell },
   { id: "monitoring", label: "Monitor", icon: Activity },
   { id: "health", label: "Health", icon: Heart },
 ];

@@ -4,6 +4,7 @@ import { StorageMonitor } from "@/components/StorageMonitor";
 import { DataMonitor } from "@/components/DataMonitor";
 import { HealthTips } from "@/components/HealthTips";
 import { MonitoringDashboard } from "@/components/MonitoringDashboard";
+import { AlarmMonitor } from "@/components/AlarmMonitor";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { deviceService } from "@/services/deviceService";
 import { Smartphone, Activity } from "lucide-react";
@@ -29,6 +30,8 @@ const Index = () => {
         return <StorageMonitor />;
       case "data":
         return <DataMonitor />;
+      case "alarms":
+        return <AlarmMonitor />;
       case "monitoring":
         return <MonitoringDashboard />;
       case "health":
@@ -46,6 +49,8 @@ const Index = () => {
         return "Storage Monitor";
       case "data":
         return "Data Usage";
+      case "alarms":
+        return "Alert Alarms";
       case "monitoring":
         return "Background Monitor";
       case "health":
