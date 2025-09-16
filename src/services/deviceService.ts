@@ -46,8 +46,11 @@ class DeviceService {
   private backgroundTaskId: string | null = null;
   private alertLogs: AlertLog[] = [];
   private activeAlarms: Map<string, NodeJS.Timeout> = new Map();
+  private activeSoundAlarms: Map<string, NodeJS.Timeout> = new Map();
   private alarmDuration: number = 60000; // 60 seconds total alarm duration
   private alarmInterval: number = 10000; // 10 seconds between each alarm
+  private soundAlarmDuration: number = 10000; // 10 seconds sound alarm
+  private audioContext: AudioContext | null = null;
 
   async initialize() {
     // Request notification permissions
@@ -231,20 +234,26 @@ class DeviceService {
       body = `Battery is low (${level}%). Consider charging your device.`;
     }
 
-    // Send immediate notification
+    // Send immediate notification with sound
     await LocalNotifications.schedule({
       notifications: [{
         title,
         body,
         id: Date.now(),
         schedule: { at: new Date(Date.now() + 1000) },
+        sound: 'default',
+        extra: {
+          sound: true,
+          vibrate: true
+        }
       }]
     });
 
-    // Start 10-second recurring alarm for critical levels
-    if (level <= 20 || level >= 80) {
-      await this.startRecurringAlarm('battery', title, body);
-    }
+    // Start 10-second sound alarm for ALL battery levels
+    await this.startSoundAlarm('battery', title, body);
+    
+    // Also start recurring notifications alarm
+    await this.startRecurringAlarm('battery', title, body);
   }
 
   async sendStorageNotification(percentage: number) {
@@ -252,20 +261,26 @@ class DeviceService {
       const title = `Storage ${percentage}% Full`;
       const body = `Your device storage is running low. Consider cleaning up files.`;
       
-      // Send immediate notification
+      // Send immediate notification with sound
       await LocalNotifications.schedule({
         notifications: [{
           title,
           body,
           id: Date.now(),
           schedule: { at: new Date(Date.now() + 1000) },
+          sound: 'default',
+          extra: {
+            sound: true,
+            vibrate: true
+          }
         }]
       });
 
-      // Start 10-second recurring alarm for critical levels (80%+)
-      if (percentage >= 80) {
-        await this.startRecurringAlarm('storage', title, body);
-      }
+      // Start 10-second sound alarm for storage alerts
+      await this.startSoundAlarm('storage', title, body);
+      
+      // Also start recurring notifications alarm
+      await this.startRecurringAlarm('storage', title, body);
     }
   }
 
@@ -275,17 +290,25 @@ class DeviceService {
       const title = `Data Usage Alert`;
       const body = `You've used ${roundedMB}MB of mobile data this session.`;
       
-      // Send immediate notification
+      // Send immediate notification with sound
       await LocalNotifications.schedule({
         notifications: [{
           title,
           body,
           id: Date.now(),
           schedule: { at: new Date(Date.now() + 1000) },
+          sound: 'default',
+          extra: {
+            sound: true,
+            vibrate: true
+          }
         }]
       });
 
-      // Start 10-second recurring alarm for high data usage (400MB+)
+      // Start 10-second sound alarm for ALL data usage alerts (every 200MB)
+      await this.startSoundAlarm('data', title, body);
+      
+      // Also start recurring notifications alarm for high usage (400MB+)
       if (roundedMB >= 400) {
         await this.startRecurringAlarm('data', title, body);
       }
@@ -399,11 +422,84 @@ class DeviceService {
     }
   }
 
+  private async startSoundAlarm(type: string, title: string, body: string) {
+    const soundAlarmKey = `${type}_sound_alarm`;
+    
+    // Clear any existing sound alarm for this type
+    await this.stopSoundAlarm(soundAlarmKey);
+    
+    // Initialize audio context for web-based sound
+    if (!this.audioContext) {
+      try {
+        this.audioContext = new AudioContext();
+      } catch (error) {
+        console.warn('AudioContext not supported');
+      }
+    }
+    
+    // Play sound for 10 seconds
+    if (this.audioContext) {
+      this.playAlarmSound();
+    }
+    
+    // Set timeout to stop the sound alarm after 10 seconds
+    const soundTimeout = setTimeout(() => {
+      this.stopSoundAlarm(soundAlarmKey);
+    }, this.soundAlarmDuration);
+    
+    this.activeSoundAlarms.set(soundAlarmKey, soundTimeout);
+  }
+
+  private playAlarmSound() {
+    if (!this.audioContext) return;
+    
+    try {
+      // Create oscillator for alarm sound
+      const oscillator = this.audioContext.createOscillator();
+      const gainNode = this.audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+      
+      // Set alarm sound frequency (high pitch beep)
+      oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(1000, this.audioContext.currentTime + 0.5);
+      
+      // Set volume
+      gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 10);
+      
+      // Play for 10 seconds
+      oscillator.start(this.audioContext.currentTime);
+      oscillator.stop(this.audioContext.currentTime + 10);
+      
+    } catch (error) {
+      console.warn('Failed to play alarm sound:', error);
+    }
+  }
+
+  private async stopSoundAlarm(soundAlarmKey: string) {
+    if (this.activeSoundAlarms.has(soundAlarmKey)) {
+      const timeout = this.activeSoundAlarms.get(soundAlarmKey);
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      this.activeSoundAlarms.delete(soundAlarmKey);
+    }
+  }
+
   async stopAllAlarms() {
+    // Stop notification alarms
     for (const [key, interval] of this.activeAlarms.entries()) {
       clearInterval(interval);
     }
     this.activeAlarms.clear();
+    
+    // Stop sound alarms
+    for (const [key, timeout] of this.activeSoundAlarms.entries()) {
+      clearTimeout(timeout);
+    }
+    this.activeSoundAlarms.clear();
   }
 
   destroy() {
@@ -423,6 +519,12 @@ class DeviceService {
     
     // Stop all recurring alarms
     this.stopAllAlarms();
+    
+    // Close audio context
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
   }
 }
 
