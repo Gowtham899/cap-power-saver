@@ -53,14 +53,19 @@ class DeviceService {
   private audioContext: AudioContext | null = null;
 
   async initialize() {
-    // Request notification permissions
-    await LocalNotifications.requestPermissions();
+    // Request notification permissions (non-blocking)
+    LocalNotifications.requestPermissions().catch(err => 
+      console.warn('Notification permissions not granted:', err)
+    );
     
-    // Load existing alert logs
-    await this.loadAlertLogs();
+    // Load existing alert logs (async)
+    this.loadAlertLogs().catch(err => 
+      console.warn('Failed to load alert logs:', err)
+    );
     
-    // Start all monitoring services
-    await this.startBackgroundMonitoring();
+    // Use lightweight monitoring for web/development
+    // Heavy monitoring is handled by Android WorkManager in production
+    await this.startLightweightMonitoring();
   }
 
   async getDeviceInfo(): Promise<DeviceInfo> {
@@ -141,26 +146,48 @@ class DeviceService {
     return dataUsage;
   }
 
-  private async startBackgroundMonitoring() {
-    // Start battery monitoring (every 30 seconds)
-    this.batteryCheckInterval = setInterval(async () => {
-      await this.checkBatteryStatus();
-    }, 30000);
+  private async startLightweightMonitoring() {
+    // For web/development - use longer intervals to prevent ANR
+    // Production Android app uses WorkManager instead
+    
+    // Start battery monitoring (every 2 minutes to reduce load)
+    this.batteryCheckInterval = setInterval(() => {
+      // Use setTimeout to make it non-blocking
+      setTimeout(async () => {
+        try {
+          await this.checkBatteryStatus();
+        } catch (error) {
+          console.warn('Battery check error:', error);
+        }
+      }, 0);
+    }, 120000); // 2 minutes
 
-    // Start storage monitoring (every 5 minutes)
-    this.storageCheckInterval = setInterval(async () => {
-      await this.checkStorageStatus();
-    }, 5 * 60 * 1000);
+    // Start storage monitoring (every 10 minutes)
+    this.storageCheckInterval = setInterval(() => {
+      setTimeout(async () => {
+        try {
+          await this.checkStorageStatus();
+        } catch (error) {
+          console.warn('Storage check error:', error);
+        }
+      }, 0);
+    }, 10 * 60 * 1000); // 10 minutes
 
-    // Start data monitoring (every minute)
-    this.dataCheckInterval = setInterval(async () => {
-      await this.checkDataUsage();
-    }, 60000);
+    // Start data monitoring (every 5 minutes)
+    this.dataCheckInterval = setInterval(() => {
+      setTimeout(async () => {
+        try {
+          await this.checkDataUsage();
+        } catch (error) {
+          console.warn('Data check error:', error);
+        }
+      }, 0);
+    }, 5 * 60 * 1000); // 5 minutes
 
-    // Initial checks
-    await this.checkBatteryStatus();
-    await this.checkStorageStatus();
-    await this.checkDataUsage();
+    // Initial checks (non-blocking)
+    setTimeout(() => this.checkBatteryStatus().catch(console.warn), 1000);
+    setTimeout(() => this.checkStorageStatus().catch(console.warn), 2000);
+    setTimeout(() => this.checkDataUsage().catch(console.warn), 3000);
   }
 
   private async checkBatteryStatus() {
@@ -451,10 +478,20 @@ class DeviceService {
   }
 
   private playAlarmSound() {
+    // Use requestIdleCallback to avoid blocking main thread
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => this.createAlarmSound());
+    } else {
+      // Fallback for browsers without requestIdleCallback
+      setTimeout(() => this.createAlarmSound(), 0);
+    }
+  }
+
+  private createAlarmSound() {
     if (!this.audioContext) return;
     
     try {
-      // Create oscillator for alarm sound
+      // Create oscillator for alarm sound (non-blocking)
       const oscillator = this.audioContext.createOscillator();
       const gainNode = this.audioContext.createGain();
       
