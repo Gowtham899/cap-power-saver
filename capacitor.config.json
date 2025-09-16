@@ -7,6 +7,15 @@
     "cleartext": true
   },
   "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#1e40af",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true
+    },
     "LocalNotifications": {
       "smallIcon": "ic_stat_icon_config_sample",
       "iconColor": "#488AFF",
@@ -28,6 +37,17 @@
     "allowMixedContent": true,
     "captureExternalUrls": false,
     "webContentsDebuggingEnabled": true,
+    "icon": {
+      "source": "public/logo.png",
+      "foregroundSource": "public/logo.png",
+      "backgroundColor": "#1e40af"
+    },
+    "splash": {
+      "source": "public/logo.png",
+      "backgroundColor": "#1e40af",
+      "showSpinner": false,
+      "spinnerColor": "#14b8a6"
+    },
     "permissions": [
       "android.permission.WAKE_LOCK",
       "android.permission.RECEIVE_BOOT_COMPLETED",

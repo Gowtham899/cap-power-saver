@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background gradient from dark blue to teal -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="@color/splash_background_start"
+                android:endColor="@color/splash_background_end"
+                android:angle="135"
+                android:type="linear" />
+        </shape>
+    </item>
+    
+    <!-- Centered logo -->
+    <item android:gravity="center">
+        <bitmap
+            android:src="@drawable/splash_logo"
+            android:gravity="center" />
+    </item>
+</layer-list>
