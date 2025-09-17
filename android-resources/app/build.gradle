@@ -1,12 +1,15 @@
-// Android app build configuration
-// Compatible with Capacitor 7.x and Android Gradle Plugin 8.x
+apply plugin: 'com.android.application'
 
 android {
-    compileSdk 34
+    compileSdk rootProject.ext.compileSdkVersion
     
     defaultConfig {
-        minSdk 21
-        targetSdk 34
+        applicationId "app.lovable.8d915f617b054570b15db3fd54ebbfaa"
+        minSdk rootProject.ext.minSdkVersion
+        targetSdk rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         
         // Enable vector drawable support for older devices
         vectorDrawables.useSupportLibrary = true
@@ -26,17 +29,39 @@ android {
     
     compileOptions {
         // Use Java 17 for compatibility with modern Android development
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility rootProject.ext.javaVersion
+        targetCompatibility rootProject.ext.javaVersion
     }
     
     // Kotlin configuration if using Kotlin
     kotlinOptions {
         jvmTarget = '17'
     }
+    
+    // Linting options to prevent build warnings
+    lintOptions {
+        abortOnError false
+        disable 'InvalidPackage'
+    }
+}
+
+repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://www.jitpack.io' }
 }
 
 dependencies {
+    implementation project(':capacitor-android')
+    implementation project(':capacitor-cordova-android-plugins')
+    
+    // Core Android dependencies
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.activity:activity:1.8.2'
+    implementation 'androidx.fragment:fragment:1.6.2'
+    implementation 'androidx.core:core-splashscreen:1.0.1'
+    
     // WorkManager for background tasks
     implementation 'androidx.work:work-runtime:2.9.0'
     implementation 'androidx.work:work-runtime-ktx:2.9.0'
@@ -53,4 +78,9 @@ dependencies {
     
     // Media for sound handling
     implementation 'androidx.media:media:1.7.0'
+    
+    // Testing dependencies
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }

@@ -26,10 +26,13 @@ buildscript {
     }
 }
 
+// Configure repositories for all projects - no flatDir to avoid warnings
 allprojects {
     repositories {
         google()
         mavenCentral()
+        // Maven repository for additional dependencies
+        maven { url 'https://www.jitpack.io' }
     }
     
     // Ensure Java 17 is used for all modules

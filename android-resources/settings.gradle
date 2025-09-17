@@ -1,0 +1,23 @@
+// Android project settings
+// This file configures the Gradle build for Capacitor Android projects
+
+include ':app'
+include ':capacitor-android'
+project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
+
+include ':capacitor-cordova-android-plugins'
+project(':capacitor-cordova-android-plugins').projectDir = new File('../node_modules/@capacitor/android/capacitor-cordova-android-plugins/')
+
+// Repository configuration for all modules
+dependencyResolutionManagement {
+    repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
+    repositories {
+        google()
+        mavenCentral()
+        // Maven repository for Capacitor and Cordova plugins
+        maven { url 'https://www.jitpack.io' }
+    }
+}
+
+// Enable Gradle's configuration cache for better performance
+enableFeaturePreview('CONFIGURATION_CACHE')
