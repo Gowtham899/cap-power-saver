@@ -1,4 +1,5 @@
-// Add these dependencies to your app/build.gradle file
+// Android app build configuration
+// Compatible with Capacitor 7.x and Android Gradle Plugin 8.x
 
 android {
     compileSdk 34
@@ -24,8 +25,14 @@ android {
     }
     
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        // Use Java 17 for compatibility with modern Android development
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    
+    // Kotlin configuration if using Kotlin
+    kotlinOptions {
+        jvmTarget = '17'
     }
 }
 

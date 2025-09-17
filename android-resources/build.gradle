@@ -1,0 +1,44 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// This should be placed in the android/ directory (not android/app/)
+
+buildscript {
+    ext {
+        compileSdkVersion = 34
+        targetSdkVersion = 34
+        minSdkVersion = 21
+        
+        // Use compatible versions
+        androidGradlePluginVersion = '8.2.1'
+        kotlinVersion = '1.9.10'
+        
+        // Java version for all modules
+        javaVersion = JavaVersion.VERSION_17
+    }
+    
+    repositories {
+        google()
+        mavenCentral()
+    }
+    
+    dependencies {
+        classpath "com.android.tools.build:gradle:$androidGradlePluginVersion"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    
+    // Ensure Java 17 is used for all modules
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
