@@ -191,24 +191,6 @@ export function StorageMonitor() {
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
-      <Card className="bg-gradient-card border-border/50">
-        <CardHeader>
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="flex items-center gap-2">
-              <Trash2 className="h-4 w-4" />
-              Clean Cache
-            </Button>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Folder className="h-4 w-4" />
-              Manage Files
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Alert Settings */}
       <Card className="bg-gradient-card border-border/50">
