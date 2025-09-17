@@ -1,8 +1,12 @@
 # Android Build Error Fix Guide
 
-## Issue Fixed: "error: invalid source release: 21"
+## Issues Fixed:
 
+### 1. "error: invalid source release: 21"
 This error occurs when there's a Java version mismatch in the Android build configuration.
+
+### 2. "SDK location not found"
+This error occurs when Android SDK path is not properly configured.
 
 ## Files Updated:
 
@@ -20,6 +24,11 @@ This error occurs when there's a Java version mismatch in the Android build conf
 - Ensures consistent Java 17 usage across all modules
 - Compatible Android Gradle Plugin version (8.2.1)
 
+### 4. `android/local.properties` (NEW)
+- Configures Android SDK path for Gradle builds
+- Prevents "SDK location not found" errors
+- Template provided for Windows/macOS/Linux
+
 ## Implementation Steps:
 
 1. **Copy these files to your Android project:**
@@ -28,9 +37,21 @@ This error occurs when there's a Java version mismatch in the Android build conf
    cp android-resources/app/build.gradle android/app/
    cp android-resources/gradle.properties android/
    cp android-resources/build.gradle android/
+   cp android-resources/local.properties android/
    ```
 
-2. **Ensure Java 17 is installed:**
+2. **Configure Android SDK path:**
+   ```bash
+   # Edit android/local.properties and set your Android SDK path:
+   # For Windows: sdk.dir=C\:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
+   # For macOS: sdk.dir=/Users/YourUsername/Library/Android/sdk
+   # For Linux: sdk.dir=/home/YourUsername/Android/Sdk
+   
+   # Or set ANDROID_HOME environment variable instead:
+   # export ANDROID_HOME=/path/to/your/android/sdk
+   ```
+
+3. **Ensure Java 17 is installed:**
    ```bash
    # Check Java version
    java -version
@@ -39,14 +60,14 @@ This error occurs when there's a Java version mismatch in the Android build conf
    # If not, install Java 17 (OpenJDK recommended)
    ```
 
-3. **Clean and rebuild:**
+4. **Clean and rebuild:**
    ```bash
    cd android
    ./gradlew clean
    ./gradlew build
    ```
 
-4. **Run the app:**
+5. **Run the app:**
    ```bash
    npx cap run android
    ```
