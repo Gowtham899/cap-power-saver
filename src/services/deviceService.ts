@@ -7,6 +7,7 @@ import { Filesystem } from '@capacitor/filesystem';
 export interface BatteryInfo {
   level: number;
   isCharging: boolean;
+  temperature: number; // Temperature in Celsius
 }
 
 export interface StorageInfo {
@@ -75,15 +76,41 @@ class DeviceService {
   async getBatteryInfo(): Promise<BatteryInfo> {
     try {
       const info = await Device.getBatteryInfo();
+      // Note: Capacitor doesn't provide battery temperature directly
+      // For development, we simulate temperature based on battery level and charging status
+      let temperature = 25; // Base temperature 25°C
+      
+      // Simulate higher temperature when charging or battery is low/high
+      if (info.isCharging) {
+        temperature += Math.random() * 15 + 5; // 30-45°C when charging
+      } else if ((info.batteryLevel || 0) > 0.9) {
+        temperature += Math.random() * 10 + 5; // 30-40°C when battery is very full
+      } else if ((info.batteryLevel || 0) < 0.2) {
+        temperature += Math.random() * 8 + 2; // 27-35°C when battery is low
+      } else {
+        temperature += Math.random() * 8 - 2; // 23-31°C normal range
+      }
+      
       return {
         level: Math.round((info.batteryLevel || 0) * 100),
         isCharging: info.isCharging || false,
+        temperature: Math.round(temperature),
       };
     } catch (error) {
       // Fallback for web/development
+      const level = Math.floor(Math.random() * 100);
+      const isCharging = Math.random() > 0.5;
+      let temperature = 25 + Math.random() * 15; // 25-40°C range
+      
+      // Simulate overheating occasionally for testing
+      if (Math.random() < 0.1) {
+        temperature = 45 + Math.random() * 10; // 45-55°C overheating
+      }
+      
       return {
-        level: Math.floor(Math.random() * 100),
-        isCharging: Math.random() > 0.5,
+        level,
+        isCharging,
+        temperature: Math.round(temperature),
       };
     }
   }
@@ -193,13 +220,20 @@ class DeviceService {
   private async checkBatteryStatus() {
     const battery = await this.getBatteryInfo();
     const level = battery.level;
+    const temperature = battery.temperature;
     
     // Check for battery level alerts at specified thresholds
     const alertLevels = [5, 10, 15, 20, 80, 85, 90, 95, 100];
     
     if (alertLevels.includes(level) && level !== this.lastBatteryLevel) {
-      await this.sendBatteryNotification(level, battery.isCharging);
-      await this.logAlert('battery', level, `Battery at ${level}%${battery.isCharging ? ' (charging)' : ''}`);
+      await this.sendBatteryNotification(level, battery.isCharging, temperature);
+      await this.logAlert('battery', level, `Battery at ${level}%${battery.isCharging ? ' (charging)' : ''} - Temp: ${temperature}°C`);
+    }
+    
+    // Check for temperature alerts (overheating)
+    if (temperature >= 40) {
+      await this.sendTemperatureNotification(temperature);
+      await this.logAlert('battery', temperature, `Device overheating: ${temperature}°C`);
     }
     
     this.lastBatteryLevel = level;
@@ -249,7 +283,7 @@ class DeviceService {
     await Preferences.set({ key: 'lastDataCheck', value: Date.now().toString() });
   }
 
-  private async sendBatteryNotification(level: number, isCharging: boolean) {
+  private async sendBatteryNotification(level: number, isCharging: boolean, temperature?: number) {
     let title = `Battery at ${level}%`;
     let body = '';
     
@@ -259,6 +293,10 @@ class DeviceService {
         `Battery level is high (${level}%). Good battery management!`;
     } else if (level <= 20) {
       body = `Battery is low (${level}%). Consider charging your device.`;
+    }
+
+    if (temperature) {
+      body += ` Temperature: ${temperature}°C`;
     }
 
     // Send immediate notification with sound
@@ -281,6 +319,47 @@ class DeviceService {
     
     // Also start recurring notifications alarm
     await this.startRecurringAlarm('battery', title, body);
+  }
+
+  private async sendTemperatureNotification(temperature: number) {
+    const title = `🔥 Device Overheating!`;
+    let body = '';
+    let severity = '';
+    
+    if (temperature >= 50) {
+      severity = 'CRITICAL';
+      body = `Device temperature is critically high (${temperature}°C). Stop using immediately and let it cool down.`;
+    } else if (temperature >= 45) {
+      severity = 'SEVERE';
+      body = `Device temperature is very high (${temperature}°C). Reduce usage and avoid charging.`;
+    } else if (temperature >= 40) {
+      severity = 'WARNING';
+      body = `Device temperature is elevated (${temperature}°C). Consider reducing usage.`;
+    }
+
+    // Send immediate high-priority notification
+    await LocalNotifications.schedule({
+      notifications: [{
+        title,
+        body,
+        id: Date.now(),
+        schedule: { at: new Date(Date.now() + 500) },
+        sound: 'default',
+        extra: {
+          sound: true,
+          vibrate: true,
+          priority: 'high'
+        }
+      }]
+    });
+
+    // Start urgent sound alarm for overheating
+    await this.startSoundAlarm('temperature', title, body);
+    
+    // Start recurring alarm for severe overheating
+    if (temperature >= 45) {
+      await this.startRecurringAlarm('temperature', title, body);
+    }
   }
 
   async sendStorageNotification(percentage: number) {

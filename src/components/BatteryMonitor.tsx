@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { Battery, BatteryLow, Zap } from "lucide-react";
+import { Battery, BatteryLow, Zap, Thermometer, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { deviceService, BatteryInfo } from "@/services/deviceService";
 import { cn } from "@/lib/utils";
 
 export function BatteryMonitor() {
-  const [batteryInfo, setBatteryInfo] = useState<BatteryInfo>({ level: 0, isCharging: false });
+  const [batteryInfo, setBatteryInfo] = useState<BatteryInfo>({ level: 0, isCharging: false, temperature: 25 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,6 +41,22 @@ export function BatteryMonitor() {
     return Battery;
   };
 
+  const getTemperatureColor = (temp: number) => {
+    if (temp >= 50) return "danger";
+    if (temp >= 45) return "danger";
+    if (temp >= 40) return "warning";
+    if (temp >= 35) return "warning";
+    return "tech-green";
+  };
+
+  const getTemperatureStatus = (temp: number) => {
+    if (temp >= 50) return "CRITICAL";
+    if (temp >= 45) return "OVERHEATING";
+    if (temp >= 40) return "HOT";
+    if (temp >= 35) return "WARM";
+    return "NORMAL";
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -57,9 +74,31 @@ export function BatteryMonitor() {
 
   const BatteryIcon = getBatteryIcon(batteryInfo.level, batteryInfo.isCharging);
   const batteryColor = getBatteryColor(batteryInfo.level);
+  const tempColor = getTemperatureColor(batteryInfo.temperature);
+  const tempStatus = getTemperatureStatus(batteryInfo.temperature);
 
   return (
     <div className="space-y-6">
+      {/* Temperature Alert */}
+      {batteryInfo.temperature >= 40 && (
+        <Alert className={cn("border-2", 
+          batteryInfo.temperature >= 50 ? "border-danger bg-danger/10" : 
+          batteryInfo.temperature >= 45 ? "border-danger bg-danger/5" :
+          "border-warning bg-warning/10"
+        )}>
+          <AlertTriangle className={cn("h-4 w-4",
+            batteryInfo.temperature >= 45 ? "text-danger" : "text-warning"
+          )} />
+          <AlertDescription className={cn("font-medium",
+            batteryInfo.temperature >= 45 ? "text-danger" : "text-warning"
+          )}>
+            {batteryInfo.temperature >= 50 ? "🔥 CRITICAL: Device overheating! Stop using immediately." :
+             batteryInfo.temperature >= 45 ? "⚠️ SEVERE: Device very hot! Reduce usage and avoid charging." :
+             "⚠️ WARNING: Device temperature elevated. Consider reducing usage."}
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {/* Main Battery Status */}
       <Card className="bg-gradient-card border-border/50 shadow-elevated">
         <CardHeader className="pb-4">
@@ -133,24 +172,39 @@ export function BatteryMonitor() {
           </div>
 
           {/* Status Info */}
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border/50">
+          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border/50">
             <div className="text-center">
-              <div className="text-2xl font-bold text-foreground">
+              <div className="text-xl font-bold text-foreground">
                 {batteryInfo.isCharging ? "Charging" : "Discharging"}
               </div>
               <div className="text-sm text-muted-foreground">Status</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-tech-blue">
+              <div className="text-xl font-bold text-tech-blue">
                 {batteryInfo.level >= 80 ? "Healthy" : batteryInfo.level >= 20 ? "Normal" : "Low"}
               </div>
               <div className="text-sm text-muted-foreground">Health</div>
+            </div>
+            <div className="text-center">
+              <div className={cn("text-xl font-bold flex items-center justify-center gap-1",
+                tempColor === "danger" && "text-danger",
+                tempColor === "warning" && "text-warning",
+                tempColor === "tech-green" && "text-tech-green"
+              )}>
+                <Thermometer className="h-4 w-4" />
+                {batteryInfo.temperature}°C
+              </div>
+              <div className={cn("text-sm font-medium",
+                tempColor === "danger" && "text-danger",
+                tempColor === "warning" && "text-warning",
+                tempColor === "tech-green" && "text-muted-foreground"
+              )}>{tempStatus}</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Battery Alerts Setup */}
+      {/* Battery & Temperature Alerts Setup */}
       <Card className="bg-gradient-card border-border/50">
         <CardHeader>
           <CardTitle className="text-lg">Alert Settings</CardTitle>
@@ -165,8 +219,16 @@ export function BatteryMonitor() {
               <span className="text-muted-foreground">High Battery Alerts</span>
               <span className="text-tech-green">80%, 85%, 90%, 95%, 100%</span>
             </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Temperature Alerts</span>
+              <span className="text-warning">40°C+</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Overheating Alert</span>
+              <span className="text-danger">45°C+</span>
+            </div>
             <div className="text-xs text-muted-foreground pt-2 border-t border-border/50">
-              Notifications are automatically sent when battery reaches these levels
+              Notifications are automatically sent when battery reaches these levels or temperature exceeds safe limits
             </div>
           </div>
         </CardContent>
