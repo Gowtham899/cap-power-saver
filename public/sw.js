@@ -1,5 +1,5 @@
-const CACHE_NAME = 'device-health-monitor-v1';
-const RUNTIME_CACHE = 'runtime-cache-v1';
+const CACHE_NAME = 'device-health-monitor-v2'; // Updated version to force cache refresh
+const RUNTIME_CACHE = 'runtime-cache-v2';
 
 // Files to cache immediately on install
 const PRECACHE_URLS = [
@@ -11,6 +11,12 @@ const PRECACHE_URLS = [
 
 // Install event - cache essential files
 self.addEventListener('install', (event) => {
+  // Skip caching in development (when hostname includes lovableproject.com)
+  if (self.location.hostname.includes('lovableproject.com')) {
+    self.skipWaiting();
+    return;
+  }
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(PRECACHE_URLS))
@@ -23,9 +29,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME && name !== RUNTIME_CACHE)
-          .map((name) => caches.delete(name))
+        cacheNames.map((name) => caches.delete(name)) // Delete ALL old caches
       );
     }).then(() => self.clients.claim())
   );
@@ -33,6 +37,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
+  // Skip caching in development
+  if (self.location.hostname.includes('lovableproject.com')) {
+    return;
+  }
+
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
