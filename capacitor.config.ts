@@ -1,9 +1,18 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
+// Set CAP_DEV_MODE=true in your environment to enable dev server
+const isDev = process.env.CAP_DEV_MODE === 'true';
+
 const config: CapacitorConfig = {
   appId: 'com.gowtham.smartsaver',
   appName: 'Smart Saver',
   webDir: 'dist',
+  ...(isDev && {
+    server: {
+      url: 'https://8d915f61-7b05-4570-b15d-b3fd54ebbfaa.lovableproject.com?forceHideBadge=true',
+      cleartext: true
+    }
+  }),
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,

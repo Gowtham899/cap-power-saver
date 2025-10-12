@@ -37,18 +37,24 @@ npx cap open android
 ## Development vs Production:
 
 ### For development with hot reload:
-Use `capacitor.config.json` with server.url pointing to Lovable preview:
-```json
-{
-  "server": {
-    "url": "https://8d915f61-7b05-4570-b15d-b3fd54ebbfaa.lovableproject.com?forceHideBadge=true",
-    "cleartext": true
-  }
-}
-```
+Set environment variable before syncing:
+```bash
+# Windows
+set CAP_DEV_MODE=true && npx cap sync android
 
-### For production/Play Store:
-Use `capacitor.config.ts` (this file) WITHOUT server.url - it will use local dist assets.
+# Mac/Linux
+CAP_DEV_MODE=true npx cap sync android
+```
+This uses the live Lovable preview URL for hot reload during development.
+
+### For production/Play Store (bundled assets):
+Just run normally WITHOUT the environment variable:
+```bash
+npm run build
+npx cap sync android
+npx cap open android
+```
+This bundles local assets into the APK - no external URLs.
 
 ## Common issues:
 
