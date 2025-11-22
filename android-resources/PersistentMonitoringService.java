@@ -125,6 +125,10 @@ public class PersistentMonitoringService extends Service {
     private void createNotificationChannels() {
         NotificationManager manager = getSystemService(NotificationManager.class);
         
+        // Default notification sound
+        android.net.Uri notificationSound = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
+        android.net.Uri alarmSound = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM);
+        
         // Persistent service channel
         NotificationChannel serviceChannel = new NotificationChannel(
             CHANNEL_ID,
@@ -135,7 +139,7 @@ public class PersistentMonitoringService extends Service {
         serviceChannel.setShowBadge(false);
         manager.createNotificationChannel(serviceChannel);
         
-        // Battery alerts channel
+        // Battery alerts channel with sound
         NotificationChannel batteryChannel = new NotificationChannel(
             BATTERY_CHANNEL_ID,
             "Battery Alerts",
@@ -143,9 +147,14 @@ public class PersistentMonitoringService extends Service {
         );
         batteryChannel.setDescription("Battery level and charging notifications");
         batteryChannel.enableVibration(true);
+        batteryChannel.setVibrationPattern(new long[]{0, 500, 200, 500});
+        batteryChannel.setSound(notificationSound, new android.media.AudioAttributes.Builder()
+            .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build());
         manager.createNotificationChannel(batteryChannel);
         
-        // Storage alerts channel
+        // Storage alerts channel with sound
         NotificationChannel storageChannel = new NotificationChannel(
             STORAGE_CHANNEL_ID,
             "Storage Alerts",
@@ -153,9 +162,14 @@ public class PersistentMonitoringService extends Service {
         );
         storageChannel.setDescription("Storage space notifications");
         storageChannel.enableVibration(true);
+        storageChannel.setVibrationPattern(new long[]{0, 300, 100, 300});
+        storageChannel.setSound(notificationSound, new android.media.AudioAttributes.Builder()
+            .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build());
         manager.createNotificationChannel(storageChannel);
         
-        // Temperature alerts channel
+        // Temperature alerts channel with alarm sound
         NotificationChannel tempChannel = new NotificationChannel(
             TEMPERATURE_CHANNEL_ID,
             "Temperature Alerts",
@@ -163,7 +177,11 @@ public class PersistentMonitoringService extends Service {
         );
         tempChannel.setDescription("Device overheating notifications");
         tempChannel.enableVibration(true);
-        tempChannel.setVibrationPattern(new long[]{0, 500, 250, 500});
+        tempChannel.setVibrationPattern(new long[]{0, 1000, 500, 1000});
+        tempChannel.setSound(alarmSound, new android.media.AudioAttributes.Builder()
+            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build());
         manager.createNotificationChannel(tempChannel);
     }
     
@@ -323,11 +341,20 @@ public class PersistentMonitoringService extends Service {
                 .setSmallIcon(R.drawable.ic_battery_alert)
                 .setContentIntent(pendingIntent)
                 .setPriority(priority)
-                .setAutoCancel(true);
+                .setAutoCancel(true)
+                .setCategory(NotificationCompat.CATEGORY_ALARM);
                 
-            // Add vibration for high priority alerts
+            // Add sound and vibration for high priority alerts
             if (priority >= NotificationCompat.PRIORITY_HIGH) {
                 builder.setVibrate(new long[]{0, 500, 250, 500});
+                builder.setDefaults(NotificationCompat.DEFAULT_ALL);
+                
+                // Use alarm sound for temperature alerts, notification sound for others
+                if (channelId.equals(TEMPERATURE_CHANNEL_ID)) {
+                    builder.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM));
+                } else {
+                    builder.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION));
+                }
             }
             
             // Full screen intent for critical temperature alerts
