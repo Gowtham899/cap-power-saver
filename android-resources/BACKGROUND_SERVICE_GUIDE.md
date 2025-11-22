@@ -52,9 +52,15 @@ This guide explains how to set up persistent background monitoring that works ev
 
 ### Notification System
 - **Persistent Service Notification**: Shows service is running
-- **Battery Alerts**: High priority with vibration
-- **Temperature Alerts**: Maximum priority with full-screen intent for critical temperatures
-- **Storage Alerts**: High priority notifications
+- **Battery Alerts**: High priority with sound, vibration
+- **Temperature Alerts**: Maximum priority with alarm sound, full-screen intent for critical temperatures
+- **Storage Alerts**: High priority with sound, vibration
+
+### Alert Sounds (New!)
+- **Battery Alerts**: System notification sound with medium vibration
+- **Storage Alerts**: System notification sound with quick vibration pulses
+- **Temperature Alerts**: System alarm sound (louder) with long vibration pulses
+- **Sound Types**: Notifications use standard alert sound, temperature uses alarm ringtone
 
 ### Power Management
 - **Wake Lock**: Prevents device sleep during monitoring
