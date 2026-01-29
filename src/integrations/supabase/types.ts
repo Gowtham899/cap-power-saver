@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alert_logs: {
+        Row: {
+          alert_level: string
+          alert_type: string
+          attachment_url: string | null
+          created_at: string
+          current_value: number
+          device_id: string
+          id: string
+          is_charging: boolean | null
+          message: string
+          threshold_value: number
+        }
+        Insert: {
+          alert_level: string
+          alert_type: string
+          attachment_url?: string | null
+          created_at?: string
+          current_value: number
+          device_id: string
+          id?: string
+          is_charging?: boolean | null
+          message: string
+          threshold_value: number
+        }
+        Update: {
+          alert_level?: string
+          alert_type?: string
+          attachment_url?: string | null
+          created_at?: string
+          current_value?: number
+          device_id?: string
+          id?: string
+          is_charging?: boolean | null
+          message?: string
+          threshold_value?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
