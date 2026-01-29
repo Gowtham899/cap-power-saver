@@ -53,6 +53,144 @@ export type Database = {
         }
         Relationships: []
       }
+      data_usage_logs: {
+        Row: {
+          bytes_used: number
+          device_id: string
+          id: string
+          period_end: string
+          period_start: string
+          recorded_at: string
+          usage_type: string
+        }
+        Insert: {
+          bytes_used: number
+          device_id: string
+          id?: string
+          period_end?: string
+          period_start: string
+          recorded_at?: string
+          usage_type: string
+        }
+        Update: {
+          bytes_used?: number
+          device_id?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          recorded_at?: string
+          usage_type?: string
+        }
+        Relationships: []
+      }
+      device_metrics: {
+        Row: {
+          current_value: number
+          device_id: string
+          id: string
+          is_charging: boolean | null
+          max_value: number | null
+          metric_type: string
+          recorded_at: string
+        }
+        Insert: {
+          current_value: number
+          device_id: string
+          id?: string
+          is_charging?: boolean | null
+          max_value?: number | null
+          metric_type: string
+          recorded_at?: string
+        }
+        Update: {
+          current_value?: number
+          device_id?: string
+          id?: string
+          is_charging?: boolean | null
+          max_value?: number | null
+          metric_type?: string
+          recorded_at?: string
+        }
+        Relationships: []
+      }
+      devices: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          device_id: string
+          device_name: string | null
+          id: string
+          last_seen_at: string | null
+          model: string | null
+          os_version: string | null
+          platform: string
+          updated_at: string
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          device_id: string
+          device_name?: string | null
+          id?: string
+          last_seen_at?: string | null
+          model?: string | null
+          os_version?: string | null
+          platform?: string
+          updated_at?: string
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          device_id?: string
+          device_name?: string | null
+          id?: string
+          last_seen_at?: string | null
+          model?: string | null
+          os_version?: string | null
+          platform?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          alert_type: string
+          created_at: string
+          device_id: string
+          id: string
+          is_enabled: boolean
+          recurring_interval_seconds: number | null
+          sound_enabled: boolean
+          threshold_value: number
+          updated_at: string
+          vibration_enabled: boolean
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          device_id: string
+          id?: string
+          is_enabled?: boolean
+          recurring_interval_seconds?: number | null
+          sound_enabled?: boolean
+          threshold_value: number
+          updated_at?: string
+          vibration_enabled?: boolean
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          device_id?: string
+          id?: string
+          is_enabled?: boolean
+          recurring_interval_seconds?: number | null
+          sound_enabled?: boolean
+          threshold_value?: number
+          updated_at?: string
+          vibration_enabled?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
