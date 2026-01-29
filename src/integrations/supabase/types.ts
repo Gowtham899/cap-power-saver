@@ -26,6 +26,7 @@ export type Database = {
           is_charging: boolean | null
           message: string
           threshold_value: number
+          user_id: string | null
         }
         Insert: {
           alert_level: string
@@ -38,6 +39,7 @@ export type Database = {
           is_charging?: boolean | null
           message: string
           threshold_value: number
+          user_id?: string | null
         }
         Update: {
           alert_level?: string
@@ -50,6 +52,7 @@ export type Database = {
           is_charging?: boolean | null
           message?: string
           threshold_value?: number
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -62,6 +65,7 @@ export type Database = {
           period_start: string
           recorded_at: string
           usage_type: string
+          user_id: string | null
         }
         Insert: {
           bytes_used: number
@@ -71,6 +75,7 @@ export type Database = {
           period_start: string
           recorded_at?: string
           usage_type: string
+          user_id?: string | null
         }
         Update: {
           bytes_used?: number
@@ -80,6 +85,7 @@ export type Database = {
           period_start?: string
           recorded_at?: string
           usage_type?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -92,6 +98,7 @@ export type Database = {
           max_value: number | null
           metric_type: string
           recorded_at: string
+          user_id: string | null
         }
         Insert: {
           current_value: number
@@ -101,6 +108,7 @@ export type Database = {
           max_value?: number | null
           metric_type: string
           recorded_at?: string
+          user_id?: string | null
         }
         Update: {
           current_value?: number
@@ -110,6 +118,7 @@ export type Database = {
           max_value?: number | null
           metric_type?: string
           recorded_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -125,6 +134,7 @@ export type Database = {
           os_version: string | null
           platform: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           app_version?: string | null
@@ -137,6 +147,7 @@ export type Database = {
           os_version?: string | null
           platform?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           app_version?: string | null
@@ -149,6 +160,7 @@ export type Database = {
           os_version?: string | null
           platform?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -163,6 +175,7 @@ export type Database = {
           sound_enabled: boolean
           threshold_value: number
           updated_at: string
+          user_id: string | null
           vibration_enabled: boolean
         }
         Insert: {
@@ -175,6 +188,7 @@ export type Database = {
           sound_enabled?: boolean
           threshold_value: number
           updated_at?: string
+          user_id?: string | null
           vibration_enabled?: boolean
         }
         Update: {
@@ -187,6 +201,7 @@ export type Database = {
           sound_enabled?: boolean
           threshold_value?: number
           updated_at?: string
+          user_id?: string | null
           vibration_enabled?: boolean
         }
         Relationships: []
