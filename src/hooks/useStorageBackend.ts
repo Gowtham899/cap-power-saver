@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { storageBackendService, StorageMetric, StorageAlert } from "@/services/storageBackendService";
 import { deviceService, StorageInfo } from "@/services/deviceService";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface UseStorageBackendReturn {
   // Current storage info
@@ -27,6 +28,8 @@ export interface UseStorageBackendReturn {
 }
 
 export function useStorageBackend(): UseStorageBackendReturn {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  
   const [storageInfo, setStorageInfo] = useState<StorageInfo>({
     total: 0,
     used: 0,
@@ -45,6 +48,11 @@ export function useStorageBackend(): UseStorageBackendReturn {
   });
 
   const refreshStorage = useCallback(async () => {
+    if (!isAuthenticated) {
+      console.log('Waiting for authentication...');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -79,9 +87,11 @@ export function useStorageBackend(): UseStorageBackendReturn {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const checkAndAlert = useCallback(async () => {
+    if (!isAuthenticated) return;
+
     try {
       const info = await deviceService.getStorageInfo();
       const result = await storageBackendService.checkAndAlertStorage(
@@ -102,28 +112,32 @@ export function useStorageBackend(): UseStorageBackendReturn {
     } catch (err) {
       console.error('Error checking storage alerts:', err);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  // Initial fetch and periodic refresh
+  // Wait for auth before fetching
   useEffect(() => {
-    refreshStorage();
-
-    // Refresh every 60 seconds
-    const interval = setInterval(() => {
+    if (authLoading) return;
+    
+    if (isAuthenticated) {
       refreshStorage();
-      checkAndAlert();
-    }, 60000);
 
-    return () => clearInterval(interval);
-  }, [refreshStorage, checkAndAlert]);
+      // Refresh every 60 seconds
+      const interval = setInterval(() => {
+        refreshStorage();
+        checkAndAlert();
+      }, 60000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, authLoading, refreshStorage, checkAndAlert]);
 
   return {
     storageInfo,
-    loading,
+    loading: loading || authLoading,
     error,
     storageHistory,
     storageAlerts,
