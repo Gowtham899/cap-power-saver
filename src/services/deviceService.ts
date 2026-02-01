@@ -117,10 +117,43 @@ class DeviceService {
 
   async getStorageInfo(): Promise<StorageInfo> {
     try {
-      // Try to get real filesystem stats
-      const stat = await Filesystem.stat({ path: '/', directory: undefined });
-      const total = 128 * 1024 * 1024 * 1024; // Default to 128GB as we can't get total space from Capacitor
-      const used = stat.size || Math.floor(total * (0.3 + Math.random() * 0.4)); // Use real size or fallback
+      // Check if we have access to the native Storage API via window
+      // Android native code can expose storage info through a Capacitor plugin or custom bridge
+      if ((window as any).NativeStorage) {
+        const nativeStorage = (window as any).NativeStorage;
+        const total = nativeStorage.totalBytes || 0;
+        const available = nativeStorage.freeBytes || 0;
+        const used = total - available;
+        
+        return {
+          total,
+          used,
+          available,
+          percentageUsed: total > 0 ? Math.round((used / total) * 100) : 0,
+        };
+      }
+
+      // Try to use navigator.storage API (available in some browsers/WebViews)
+      if (navigator.storage && navigator.storage.estimate) {
+        const estimate = await navigator.storage.estimate();
+        const quota = estimate.quota || 0;
+        const usedBytes = estimate.usage || 0;
+        const availableBytes = quota - usedBytes;
+
+        // Only use if we got meaningful values (quota > 0)
+        if (quota > 0) {
+          return {
+            total: quota,
+            used: usedBytes,
+            available: availableBytes,
+            percentageUsed: Math.round((usedBytes / quota) * 100),
+          };
+        }
+      }
+
+      // Fallback to mock data for web/development
+      const total = 128 * 1024 * 1024 * 1024; // 128GB
+      const used = Math.floor(total * (0.3 + Math.random() * 0.4)); // 30-70% used
       const available = total - used;
       
       return {
