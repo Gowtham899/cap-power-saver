@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { HardDrive, Folder, Trash2 } from "lucide-react";
+import { HardDrive, Folder } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
+import { Capacitor } from "@capacitor/core";
 import { deviceService, StorageInfo } from "@/services/deviceService";
 import { cn } from "@/lib/utils";
 
@@ -14,13 +14,18 @@ export function StorageMonitor() {
     percentageUsed: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [isNative, setIsNative] = useState(false);
 
   useEffect(() => {
     const fetchStorageInfo = async () => {
       try {
+        const isNativePlatform = Capacitor.isNativePlatform();
+        setIsNative(isNativePlatform);
+
+        // Get storage info from deviceService (handles native vs web automatically)
         const info = await deviceService.getStorageInfo();
         setStorageInfo(info);
-        
+
         // Check for storage alerts
         if (info.percentageUsed >= 80) {
           await deviceService.sendStorageNotification(info.percentageUsed);
@@ -169,24 +174,42 @@ export function StorageMonitor() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[
-              { name: "Apps", size: storageInfo.used * 0.4, color: "tech-blue" },
-              { name: "Photos", size: storageInfo.used * 0.25, color: "tech-purple" },
-              { name: "Videos", size: storageInfo.used * 0.2, color: "warning" },
-              { name: "Documents", size: storageInfo.used * 0.1, color: "tech-green" },
-              { name: "Other", size: storageInfo.used * 0.05, color: "muted" },
-            ].map((category) => (
-              <div key={category.name} className="space-y-1">
+            {isNative ? (
+              // Native: Show real data as "System & Apps" to match total
+              <div className="space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span className="text-foreground">{category.name}</span>
-                  <span className="text-muted-foreground">{formatBytes(category.size)}</span>
+                  <span className="text-foreground">System & Apps</span>
+                  <span className="text-muted-foreground">{formatBytes(storageInfo.used)}</span>
                 </div>
                 <Progress 
-                  value={(category.size / storageInfo.total) * 100} 
+                  value={storageInfo.percentageUsed} 
                   className="h-2"
                 />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Detailed breakdown requires additional permissions
+                </p>
               </div>
-            ))}
+            ) : (
+              // Web: Show mock breakdown categories
+              [
+                { name: "Apps", size: storageInfo.used * 0.4, color: "tech-blue" },
+                { name: "Photos", size: storageInfo.used * 0.25, color: "tech-purple" },
+                { name: "Videos", size: storageInfo.used * 0.2, color: "warning" },
+                { name: "Documents", size: storageInfo.used * 0.1, color: "tech-green" },
+                { name: "Other", size: storageInfo.used * 0.05, color: "muted" },
+              ].map((category) => (
+                <div key={category.name} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-foreground">{category.name}</span>
+                    <span className="text-muted-foreground">{formatBytes(category.size)}</span>
+                  </div>
+                  <Progress 
+                    value={(category.size / storageInfo.total) * 100} 
+                    className="h-2"
+                  />
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
