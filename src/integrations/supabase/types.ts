@@ -56,6 +56,36 @@ export type Database = {
         }
         Relationships: []
       }
+      battery_logs: {
+        Row: {
+          battery_level: number
+          created_at: string
+          health_status: string
+          id: string
+          is_charging: boolean
+          temperature: number | null
+          user_id: string
+        }
+        Insert: {
+          battery_level: number
+          created_at?: string
+          health_status?: string
+          id?: string
+          is_charging?: boolean
+          temperature?: number | null
+          user_id: string
+        }
+        Update: {
+          battery_level?: number
+          created_at?: string
+          health_status?: string
+          id?: string
+          is_charging?: boolean
+          temperature?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       data_usage_logs: {
         Row: {
           bytes_used: number
@@ -164,6 +194,36 @@ export type Database = {
         }
         Relationships: []
       }
+      health_tips: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          icon: string | null
+          id: string
+          priority: number
+          title: string
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          priority?: number
+          title: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          priority?: number
+          title?: string
+        }
+        Relationships: []
+      }
       notification_settings: {
         Row: {
           alert_type: string
@@ -202,6 +262,108 @@ export type Database = {
           threshold_value?: number
           updated_at?: string
           user_id?: string | null
+          vibration_enabled?: boolean
+        }
+        Relationships: []
+      }
+      storage_logs: {
+        Row: {
+          available_storage: number
+          created_at: string
+          id: string
+          total_storage: number
+          used_storage: number
+          user_id: string
+        }
+        Insert: {
+          available_storage: number
+          created_at?: string
+          id?: string
+          total_storage: number
+          used_storage: number
+          user_id: string
+        }
+        Update: {
+          available_storage?: number
+          created_at?: string
+          id?: string
+          total_storage?: number
+          used_storage?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      usage_logs: {
+        Row: {
+          created_at: string
+          id: string
+          limit_set: number
+          mobile_data_used: number
+          user_id: string
+          wifi_data_used: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          limit_set?: number
+          mobile_data_used?: number
+          user_id: string
+          wifi_data_used?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          limit_set?: number
+          mobile_data_used?: number
+          user_id?: string
+          wifi_data_used?: number
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          battery_critical_low_threshold: number
+          battery_critical_threshold: number
+          battery_high_threshold: number
+          battery_low_threshold: number
+          created_at: string
+          data_alert_interval_mb: number
+          data_limit_mb: number
+          id: string
+          notifications_enabled: boolean
+          sound_enabled: boolean
+          updated_at: string
+          user_id: string
+          vibration_enabled: boolean
+        }
+        Insert: {
+          battery_critical_low_threshold?: number
+          battery_critical_threshold?: number
+          battery_high_threshold?: number
+          battery_low_threshold?: number
+          created_at?: string
+          data_alert_interval_mb?: number
+          data_limit_mb?: number
+          id?: string
+          notifications_enabled?: boolean
+          sound_enabled?: boolean
+          updated_at?: string
+          user_id: string
+          vibration_enabled?: boolean
+        }
+        Update: {
+          battery_critical_low_threshold?: number
+          battery_critical_threshold?: number
+          battery_high_threshold?: number
+          battery_low_threshold?: number
+          created_at?: string
+          data_alert_interval_mb?: number
+          data_limit_mb?: number
+          id?: string
+          notifications_enabled?: boolean
+          sound_enabled?: boolean
+          updated_at?: string
+          user_id?: string
           vibration_enabled?: boolean
         }
         Relationships: []
