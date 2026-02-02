@@ -1,48 +1,14 @@
-import { useState, useEffect } from "react";
-import { HardDrive, Folder } from "lucide-react";
+import { HardDrive, Folder, RefreshCw, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { Capacitor } from "@capacitor/core";
-import { deviceService, StorageInfo } from "@/services/deviceService";
+import { useStorage } from "@/contexts/StorageContext";
 import { cn } from "@/lib/utils";
 
 export function StorageMonitor() {
-  const [storageInfo, setStorageInfo] = useState<StorageInfo>({
-    total: 0,
-    used: 0,
-    available: 0,
-    percentageUsed: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [isNative, setIsNative] = useState(false);
-
-  useEffect(() => {
-    const fetchStorageInfo = async () => {
-      try {
-        const isNativePlatform = Capacitor.isNativePlatform();
-        setIsNative(isNativePlatform);
-
-        // Get storage info from deviceService (handles native vs web automatically)
-        const info = await deviceService.getStorageInfo();
-        setStorageInfo(info);
-
-        // Check for storage alerts
-        if (info.percentageUsed >= 80) {
-          await deviceService.sendStorageNotification(info.percentageUsed);
-        }
-      } catch (error) {
-        console.error("Failed to get storage info:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStorageInfo();
-    
-    // Update every 60 seconds
-    const interval = setInterval(fetchStorageInfo, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  const { storageData, isScanning, hasPermission, scanStorage } = useStorage();
+  const isNative = Capacitor.isNativePlatform();
 
   const formatBytes = (bytes: number) => {
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -57,7 +23,8 @@ export function StorageMonitor() {
     return "tech-blue";
   };
 
-  if (loading) {
+  // Loading state
+  if (isScanning || !storageData) {
     return (
       <div className="space-y-6 animate-pulse">
         <Card className="bg-gradient-card border-border/50">
@@ -72,21 +39,63 @@ export function StorageMonitor() {
     );
   }
 
-  const storageColor = getStorageColor(storageInfo.percentageUsed);
+  // Permission required state (for native only)
+  if (isNative && !hasPermission) {
+    return (
+      <div className="space-y-6">
+        <Card className="bg-gradient-card border-border/50 shadow-elevated">
+          <CardContent className="py-12">
+            <div className="text-center space-y-4">
+              <div className="mx-auto p-4 bg-warning/10 rounded-full w-fit">
+                <AlertTriangle className="h-12 w-12 text-warning" />
+              </div>
+              <h3 className="text-xl font-semibold">Permission Required</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto">
+                Storage analysis requires file access permission. Please grant permission to view your storage breakdown.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const storageColor = getStorageColor(storageData.percentageUsed);
+  const { breakdown } = storageData;
+
+  // Calculate breakdown for display
+  const breakdownCategories = [
+    { name: "Images", size: breakdown.images, color: "tech-blue" },
+    { name: "Videos", size: breakdown.videos, color: "tech-purple" },
+    { name: "Audio", size: breakdown.audio, color: "warning" },
+    { name: "Documents", size: breakdown.documents, color: "tech-green" },
+    { name: "Apps & System", size: breakdown.appsAndSystem, color: "muted-foreground" },
+  ].filter(cat => cat.size > 0); // Only show categories with data
 
   return (
     <div className="space-y-6">
       {/* Main Storage Status */}
       <Card className="bg-gradient-card border-border/50 shadow-elevated">
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3">
-            <HardDrive className={cn("h-6 w-6",
-              storageColor === "danger" && "text-danger",
-              storageColor === "warning" && "text-warning",
-              storageColor === "tech-blue" && "text-tech-blue"
-            )} />
-            Storage Usage
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-3">
+              <HardDrive className={cn("h-6 w-6",
+                storageColor === "danger" && "text-danger",
+                storageColor === "warning" && "text-warning",
+                storageColor === "tech-blue" && "text-tech-blue"
+              )} />
+              Storage Usage
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={scanStorage}
+              disabled={isScanning}
+              className="h-8 w-8"
+            >
+              <RefreshCw className={cn("h-4 w-4", isScanning && "animate-spin")} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Storage Circle */}
@@ -109,13 +118,13 @@ export function StorageMonitor() {
                   strokeWidth="8"
                   fill="none"
                   strokeLinecap="round"
-                  strokeDasharray={`${(storageInfo.percentageUsed / 100) * 314} 314`}
+                  strokeDasharray={`${(storageData.percentageUsed / 100) * 314} 314`}
                   className="transition-all duration-500"
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <div className="text-2xl font-bold">{storageInfo.percentageUsed}%</div>
+                  <div className="text-2xl font-bold">{storageData.percentageUsed}%</div>
                   <div className="text-xs text-muted-foreground">Used</div>
                 </div>
               </div>
@@ -131,11 +140,11 @@ export function StorageMonitor() {
                 storageColor === "warning" && "text-warning",
                 storageColor === "tech-blue" && "text-tech-blue"
               )}>
-                {formatBytes(storageInfo.used)} of {formatBytes(storageInfo.total)}
+                {formatBytes(storageData.used)} of {formatBytes(storageData.total)}
               </span>
             </div>
             <Progress 
-              value={storageInfo.percentageUsed} 
+              value={storageData.percentageUsed} 
               className="h-3"
             />
           </div>
@@ -144,19 +153,19 @@ export function StorageMonitor() {
           <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border/50">
             <div className="text-center">
               <div className="text-lg font-bold text-foreground">
-                {formatBytes(storageInfo.used)}
+                {formatBytes(storageData.used)}
               </div>
               <div className="text-xs text-muted-foreground">Used</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-tech-green">
-                {formatBytes(storageInfo.available)}
+                {formatBytes(storageData.available)}
               </div>
               <div className="text-xs text-muted-foreground">Available</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-tech-blue">
-                {formatBytes(storageInfo.total)}
+                {formatBytes(storageData.total)}
               </div>
               <div className="text-xs text-muted-foreground">Total</div>
             </div>
@@ -164,7 +173,7 @@ export function StorageMonitor() {
         </CardContent>
       </Card>
 
-      {/* Storage Categories */}
+      {/* Storage Breakdown */}
       <Card className="bg-gradient-card border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -174,46 +183,34 @@ export function StorageMonitor() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {isNative ? (
-              // Native: Show real data as "System & Apps" to match total
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-foreground">System & Apps</span>
-                  <span className="text-muted-foreground">{formatBytes(storageInfo.used)}</span>
-                </div>
-                <Progress 
-                  value={storageInfo.percentageUsed} 
-                  className="h-2"
-                />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Detailed breakdown requires additional permissions
-                </p>
-              </div>
-            ) : (
-              // Web: Show mock breakdown categories
-              [
-                { name: "Apps", size: storageInfo.used * 0.4, color: "tech-blue" },
-                { name: "Photos", size: storageInfo.used * 0.25, color: "tech-purple" },
-                { name: "Videos", size: storageInfo.used * 0.2, color: "warning" },
-                { name: "Documents", size: storageInfo.used * 0.1, color: "tech-green" },
-                { name: "Other", size: storageInfo.used * 0.05, color: "muted" },
-              ].map((category) => (
+            {breakdownCategories.length > 0 ? (
+              breakdownCategories.map((category) => (
                 <div key={category.name} className="space-y-1">
                   <div className="flex justify-between text-sm">
                     <span className="text-foreground">{category.name}</span>
                     <span className="text-muted-foreground">{formatBytes(category.size)}</span>
                   </div>
                   <Progress 
-                    value={(category.size / storageInfo.total) * 100} 
+                    value={storageData.total > 0 ? (category.size / storageData.total) * 100 : 0} 
                     className="h-2"
                   />
                 </div>
               ))
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                <p>No categorized data found.</p>
+                <p className="text-sm mt-1">Storage is being used by system and apps.</p>
+              </div>
             )}
           </div>
+          
+          {isNative && (
+            <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-border/50">
+              Categories based on scanning DCIM, Pictures, Downloads, Music, Movies, and Documents folders.
+            </p>
+          )}
         </CardContent>
       </Card>
-
 
       {/* Alert Settings */}
       <Card className="bg-gradient-card border-border/50">
