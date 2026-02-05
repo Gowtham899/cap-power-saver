@@ -4,12 +4,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "@/hooks/useAuth";
 import { StorageProvider } from "@/contexts/StorageContext";
 import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
 import { ScanningOverlay } from "@/components/ScanningOverlay";
 import { BackgroundService } from "@/services/BackgroundService";
+ import { deviceIdService } from "@/services/deviceIdService";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +29,10 @@ function AppContent() {
   // Initialize background service after onboarding is complete
   useEffect(() => {
     if (hasCompletedOnboarding) {
+       // Initialize device ID first
+       const deviceId = deviceIdService.getDeviceId();
+       console.log("App initialized with device ID:", deviceId);
+ 
       BackgroundService.initialize().catch(console.error);
     }
   }, [hasCompletedOnboarding]);
@@ -67,17 +71,15 @@ function AppContent() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <OnboardingProvider>
-        <StorageProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <AppContent />
-          </TooltipProvider>
-        </StorageProvider>
-      </OnboardingProvider>
-    </AuthProvider>
+     <OnboardingProvider>
+       <StorageProvider>
+         <TooltipProvider>
+           <Toaster />
+           <Sonner />
+           <AppContent />
+         </TooltipProvider>
+       </StorageProvider>
+     </OnboardingProvider>
   </QueryClientProvider>
 );
 
