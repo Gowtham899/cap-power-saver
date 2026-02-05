@@ -5,6 +5,7 @@
  import { Capacitor } from "@capacitor/core";
  import { supabase } from "@/integrations/supabase/client";
  import { deviceIdService } from "@/services/deviceIdService";
+ import { BackgroundStorageService } from "@/services/BackgroundStorageService";
 
 // Types for background service
 interface BatteryData {
@@ -40,6 +41,9 @@ class BackgroundServiceClass {
      this.deviceId = deviceIdService.getDeviceId();
      console.log("BackgroundService using device ID:", this.deviceId);
 
+     // Initialize background storage service
+     await BackgroundStorageService.initialize();
+ 
     // Listen for app state changes
     if (Capacitor.isNativePlatform()) {
       App.addListener("appStateChange", async ({ isActive }) => {
@@ -49,6 +53,7 @@ class BackgroundServiceClass {
           // App went to background - monitoring continues via native service
           console.log("App moved to background - native monitoring active");
           await this.recordMetrics(); // Record once when going to background
+          // BackgroundStorageService handles its own background scan
         } else {
           // App came to foreground - sync any offline data
           console.log("App moved to foreground - syncing data");
