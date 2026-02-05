@@ -1,6 +1,9 @@
 package com.gowtham.smartsaver;
 
 import android.content.Context;
+import android.content.Intent; // Added
+import android.app.PendingIntent; // Added
+import android.provider.Settings; // Added
 import android.os.Environment;
 import android.os.StatFs;
 import androidx.annotation.NonNull;
@@ -47,18 +50,40 @@ public class StorageMonitorWorker extends Worker {
     
     private void sendStorageNotification(int percentage) {
         try {
+            Context context = getApplicationContext();
             String title = "Storage " + percentage + "% Full";
-            String message = "Your device storage is running low. Consider cleaning up files.";
+            String message = "Your device storage is running low. Tap to manage files.";
             
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_storage_alert)
+            // 1. Create the Intent to open Storage Settings
+            Intent intent = new Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS);
+            
+            // 2. Create the PendingIntent
+            // FLAG_IMMUTABLE is required for Android 12+ (API 31+)
+            PendingIntent pendingIntent = PendingIntent.getActivity(
+                context,
+                0,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+            );
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_storage_alert) // Ensure this icon exists in your drawable folder
                 .setContentTitle(title)
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true);
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent); // 3. Attach the intent here
             
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
-            notificationManager.notify(2000 + percentage, builder.build());
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+            
+            // Note: For Android 13+, ensure you have requested the POST_NOTIFICATIONS permission 
+            // in your activity before this worker runs, otherwise the notification won't show.
+            try {
+                notificationManager.notify(2000 + percentage, builder.build());
+            } catch (SecurityException se) {
+                // Handle missing permission gracefully
+                System.err.println("Permission missing for notifications: " + se.getMessage());
+            }
             
         } catch (Exception e) {
             System.err.println("Failed to send storage notification: " + e.getMessage());
