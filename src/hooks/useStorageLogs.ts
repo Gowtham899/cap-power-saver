@@ -1,20 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+ import { deviceIdService } from "@/services/deviceIdService";
 import type { StorageLog, StorageLogInsert } from "@/types/database";
 
 export function useStorageLogs(limit = 100) {
-  const { userId } = useAuth();
+   const deviceId = deviceIdService.getDeviceId();
 
   return useQuery({
-    queryKey: ["storage-logs", userId, limit],
+     queryKey: ["storage-logs", deviceId, limit],
     queryFn: async () => {
-      if (!userId) return [];
+       if (!deviceId) return [];
 
       const { data, error } = await supabase
         .from("storage_logs")
         .select("*")
-        .eq("user_id", userId)
+         .eq("user_id", deviceId)
         .order("created_at", { ascending: false })
         .limit(limit);
 
@@ -25,17 +25,17 @@ export function useStorageLogs(limit = 100) {
 
       return data as StorageLog[];
     },
-    enabled: !!userId,
+     enabled: !!deviceId,
   });
 }
 
 export function useStorageLogsForChart(days = 7) {
-  const { userId } = useAuth();
+   const deviceId = deviceIdService.getDeviceId();
 
   return useQuery({
-    queryKey: ["storage-logs-chart", userId, days],
+     queryKey: ["storage-logs-chart", deviceId, days],
     queryFn: async () => {
-      if (!userId) return [];
+       if (!deviceId) return [];
 
       const since = new Date();
       since.setDate(since.getDate() - days);
@@ -43,7 +43,7 @@ export function useStorageLogsForChart(days = 7) {
       const { data, error } = await supabase
         .from("storage_logs")
         .select("*")
-        .eq("user_id", userId)
+         .eq("user_id", deviceId)
         .gte("created_at", since.toISOString())
         .order("created_at", { ascending: true });
 
@@ -54,21 +54,21 @@ export function useStorageLogsForChart(days = 7) {
 
       return data as StorageLog[];
     },
-    enabled: !!userId,
+     enabled: !!deviceId,
   });
 }
 
 export function useInsertStorageLog() {
   const queryClient = useQueryClient();
-  const { userId } = useAuth();
+   const deviceId = deviceIdService.getDeviceId();
 
   return useMutation({
     mutationFn: async (log: Omit<StorageLogInsert, "user_id">) => {
-      if (!userId) throw new Error("Not authenticated");
+       if (!deviceId) throw new Error("No device ID");
 
       const { data, error } = await supabase
         .from("storage_logs")
-        .insert({ ...log, user_id: userId })
+         .insert({ ...log, user_id: deviceId })
         .select()
         .single();
 
@@ -80,8 +80,8 @@ export function useInsertStorageLog() {
       return data as StorageLog;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["storage-logs", userId] });
-      queryClient.invalidateQueries({ queryKey: ["storage-logs-chart", userId] });
+       queryClient.invalidateQueries({ queryKey: ["storage-logs", deviceId] });
+       queryClient.invalidateQueries({ queryKey: ["storage-logs-chart", deviceId] });
     },
   });
 }

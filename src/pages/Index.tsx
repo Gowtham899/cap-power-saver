@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+ import { useAutoSave } from "@/hooks/useAutoSave";
 import { BatteryMonitor } from "@/components/BatteryMonitor";
 import { StorageMonitor } from "@/components/StorageMonitor";
 import { DataMonitor } from "@/components/DataMonitor";
@@ -11,6 +12,9 @@ import { Smartphone, Activity } from "lucide-react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("battery");
+ 
+   // Auto-save device data on mount with debug alerts
+   useAutoSave();
 
   useEffect(() => {
     // Initialize device service and start monitoring

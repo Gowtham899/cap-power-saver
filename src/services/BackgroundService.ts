@@ -1,9 +1,10 @@
-import { App } from "@capacitor/app";
-import { Device } from "@capacitor/device";
-import { Network } from "@capacitor/network";
-import { Preferences } from "@capacitor/preferences";
-import { Capacitor } from "@capacitor/core";
-import { supabase } from "@/integrations/supabase/client";
+ import { App } from "@capacitor/app";
+ import { Device } from "@capacitor/device";
+ import { Network } from "@capacitor/network";
+ import { Preferences } from "@capacitor/preferences";
+ import { Capacitor } from "@capacitor/core";
+ import { supabase } from "@/integrations/supabase/client";
+ import { deviceIdService } from "@/services/deviceIdService";
 
 // Types for background service
 interface BatteryData {
@@ -32,17 +33,12 @@ const MONITORING_INTERVAL = 15 * 60 * 1000; // 15 minutes
 class BackgroundServiceClass {
   private monitoringInterval: NodeJS.Timeout | null = null;
   private isActive = false;
-  private userId: string | null = null;
+   private deviceId: string | null = null;
 
   async initialize() {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    this.userId = user?.id || null;
-
-    // Listen for auth changes
-    supabase.auth.onAuthStateChange((event, session) => {
-      this.userId = session?.user?.id || null;
-    });
+     // Get device ID immediately - no auth needed
+     this.deviceId = deviceIdService.getDeviceId();
+     console.log("BackgroundService using device ID:", this.deviceId);
 
     // Listen for app state changes
     if (Capacitor.isNativePlatform()) {
@@ -153,8 +149,12 @@ class BackgroundServiceClass {
   }
 
   private async recordMetrics() {
-    if (!this.userId) {
-      console.log("No user ID - skipping metric recording");
+     if (!this.deviceId) {
+       this.deviceId = deviceIdService.getDeviceId();
+     }
+ 
+     if (!this.deviceId) {
+       console.log("No device ID - skipping metric recording");
       return;
     }
 
@@ -168,7 +168,7 @@ class BackgroundServiceClass {
 
       // Prepare data
       const batteryLog = {
-        user_id: this.userId,
+         user_id: this.deviceId,
         battery_level: battery.level,
         temperature: battery.temperature,
         is_charging: battery.isCharging,
@@ -176,7 +176,7 @@ class BackgroundServiceClass {
       };
 
       const storageLog = {
-        user_id: this.userId,
+         user_id: this.deviceId,
         total_storage: storage.total,
         used_storage: storage.used,
         available_storage: storage.available,

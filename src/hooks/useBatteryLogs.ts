@@ -1,20 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+ import { deviceIdService } from "@/services/deviceIdService";
 import type { BatteryLog, BatteryLogInsert } from "@/types/database";
 
 export function useBatteryLogs(limit = 100) {
-  const { userId } = useAuth();
+   const deviceId = deviceIdService.getDeviceId();
 
   return useQuery({
-    queryKey: ["battery-logs", userId, limit],
+     queryKey: ["battery-logs", deviceId, limit],
     queryFn: async () => {
-      if (!userId) return [];
+       if (!deviceId) return [];
 
       const { data, error } = await supabase
         .from("battery_logs")
         .select("*")
-        .eq("user_id", userId)
+         .eq("user_id", deviceId)
         .order("created_at", { ascending: false })
         .limit(limit);
 
@@ -25,17 +25,17 @@ export function useBatteryLogs(limit = 100) {
 
       return data as BatteryLog[];
     },
-    enabled: !!userId,
+     enabled: !!deviceId,
   });
 }
 
 export function useBatteryLogsForChart(hours = 24) {
-  const { userId } = useAuth();
+   const deviceId = deviceIdService.getDeviceId();
 
   return useQuery({
-    queryKey: ["battery-logs-chart", userId, hours],
+     queryKey: ["battery-logs-chart", deviceId, hours],
     queryFn: async () => {
-      if (!userId) return [];
+       if (!deviceId) return [];
 
       const since = new Date();
       since.setHours(since.getHours() - hours);
@@ -43,7 +43,7 @@ export function useBatteryLogsForChart(hours = 24) {
       const { data, error } = await supabase
         .from("battery_logs")
         .select("*")
-        .eq("user_id", userId)
+         .eq("user_id", deviceId)
         .gte("created_at", since.toISOString())
         .order("created_at", { ascending: true });
 
@@ -54,21 +54,21 @@ export function useBatteryLogsForChart(hours = 24) {
 
       return data as BatteryLog[];
     },
-    enabled: !!userId,
+     enabled: !!deviceId,
   });
 }
 
 export function useInsertBatteryLog() {
   const queryClient = useQueryClient();
-  const { userId } = useAuth();
+   const deviceId = deviceIdService.getDeviceId();
 
   return useMutation({
     mutationFn: async (log: Omit<BatteryLogInsert, "user_id">) => {
-      if (!userId) throw new Error("Not authenticated");
+       if (!deviceId) throw new Error("No device ID");
 
       const { data, error } = await supabase
         .from("battery_logs")
-        .insert({ ...log, user_id: userId })
+         .insert({ ...log, user_id: deviceId })
         .select()
         .single();
 
@@ -80,8 +80,8 @@ export function useInsertBatteryLog() {
       return data as BatteryLog;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["battery-logs", userId] });
-      queryClient.invalidateQueries({ queryKey: ["battery-logs-chart", userId] });
+       queryClient.invalidateQueries({ queryKey: ["battery-logs", deviceId] });
+       queryClient.invalidateQueries({ queryKey: ["battery-logs-chart", deviceId] });
     },
   });
 }
