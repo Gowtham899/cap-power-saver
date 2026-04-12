@@ -32,7 +32,7 @@ const LAST_SYNC_KEY = "last_background_sync";
 const MONITORING_INTERVAL = 15 * 60 * 1000; // 15 minutes
 
 class BackgroundServiceClass {
-  private monitoringInterval: NodeJS.Timeout | null = null;
+  private monitoringInterval: ReturnType<typeof setInterval> | null = null;
   private isActive = false;
    private deviceId: string | null = null;
 
