@@ -39,15 +39,15 @@ export interface MonitoringStatus {
 }
 
 class DeviceService {
-  private batteryCheckInterval: NodeJS.Timeout | null = null;
-  private storageCheckInterval: NodeJS.Timeout | null = null;
-  private dataCheckInterval: NodeJS.Timeout | null = null;
+  private batteryCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private storageCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private dataCheckInterval: ReturnType<typeof setInterval> | null = null;
   private lastBatteryLevel: number = 0;
   private dataUsageStartTime: number = Date.now();
   private backgroundTaskId: string | null = null;
   private alertLogs: AlertLog[] = [];
-  private activeAlarms: Map<string, NodeJS.Timeout> = new Map();
-  private activeSoundAlarms: Map<string, NodeJS.Timeout> = new Map();
+  private activeAlarms: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private activeSoundAlarms: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private alarmDuration: number = 60000; // 60 seconds total alarm duration
   private alarmInterval: number = 10000; // 10 seconds between each alarm
   private soundAlarmDuration: number = 10000; // 10 seconds sound alarm

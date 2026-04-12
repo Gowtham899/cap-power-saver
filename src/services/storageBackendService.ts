@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { authService } from "@/services/authService";
+import { deviceIdService } from "@/services/deviceIdService";
 import { Device } from "@capacitor/device";
 import { z } from "zod";
 
@@ -79,49 +79,45 @@ export interface StorageCategory {
 // =====================================================
 
 class StorageBackendService {
-  private deviceId: string | null = null;
+  private nativeDeviceId: string | null = null;
 
-  // Get or generate device ID with validation
+  private getUserId(): string {
+    return deviceIdService.getDeviceId();
+  }
+
   async getDeviceId(): Promise<string> {
-    if (this.deviceId) return this.deviceId;
-    
+    if (this.nativeDeviceId) return this.nativeDeviceId;
+
     try {
       const info = await Device.getId();
-      this.deviceId = info.identifier;
+      this.nativeDeviceId = info.identifier;
     } catch {
-      // Fallback for web - use stable ID from auth service
-      this.deviceId = authService.getDeviceId() || `web_${crypto.randomUUID()}`;
+      this.nativeDeviceId = deviceIdService.getDeviceId();
     }
-    
-    // Validate device ID
-    const result = deviceIdSchema.safeParse(this.deviceId);
+
+    const result = deviceIdSchema.safeParse(this.nativeDeviceId);
     if (!result.success) {
       throw new Error('Invalid device ID format');
     }
-    
-    return this.deviceId;
+
+    return this.nativeDeviceId;
   }
 
-  // Validate percentage is within bounds
   private validatePercentage(value: number): number {
     return Math.max(0, Math.min(100, Math.round(value)));
   }
 
-  // Record storage metric to Supabase with validation
   async recordStorageMetric(
     usedBytes: number,
     totalBytes: number,
     availableBytes: number
   ): Promise<StorageMetric | null> {
     try {
-      // Ensure user is authenticated
-      const userId = await authService.ensureAuthenticated();
+      const userId = this.getUserId();
       const deviceId = await this.getDeviceId();
-      
-      // Calculate and validate percentage
+
       const percentageUsed = this.validatePercentage((usedBytes / totalBytes) * 100);
 
-      // Validate metric data
       const validatedMetric = metricSchema.parse({
         metric_type: 'storage',
         current_value: percentageUsed,
@@ -152,13 +148,11 @@ class StorageBackendService {
     }
   }
 
-  // Get storage history from Supabase
   async getStorageHistory(
     days: number = 7,
     limit: number = 100
   ): Promise<StorageMetric[]> {
     try {
-      await authService.ensureAuthenticated();
       const deviceId = await this.getDeviceId();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
@@ -184,7 +178,6 @@ class StorageBackendService {
     }
   }
 
-  // Log storage alert to Supabase with validation
   async logStorageAlert(
     percentageUsed: number,
     thresholdValue: number,
@@ -192,21 +185,19 @@ class StorageBackendService {
     alertLevel: 'info' | 'warning' | 'critical' = 'warning'
   ): Promise<StorageAlert | null> {
     try {
-      const userId = await authService.ensureAuthenticated();
+      const userId = this.getUserId();
       const deviceId = await this.getDeviceId();
 
-      // Validate alert data
       const validatedAlert = alertSchema.parse({
         alert_type: 'storage',
         alert_level: alertLevel,
         threshold_value: thresholdValue,
         current_value: percentageUsed,
-        message: message.slice(0, 1000), // Enforce max length
+        message: message.slice(0, 1000),
       });
 
-      // Check if we already sent an alert for this threshold recently (within 1 hour)
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      
+
       const { data: existingAlert } = await supabase
         .from('alert_logs')
         .select('id')
@@ -247,10 +238,8 @@ class StorageBackendService {
     }
   }
 
-  // Get storage alerts from Supabase
   async getStorageAlerts(limit: number = 50): Promise<StorageAlert[]> {
     try {
-      await authService.ensureAuthenticated();
       const deviceId = await this.getDeviceId();
 
       const { data, error } = await supabase
@@ -273,7 +262,6 @@ class StorageBackendService {
     }
   }
 
-  // Check storage and trigger alerts if needed
   async checkAndAlertStorage(
     usedBytes: number,
     totalBytes: number
@@ -284,8 +272,7 @@ class StorageBackendService {
   }> {
     const percentageUsed = this.validatePercentage((usedBytes / totalBytes) * 100);
     const alertThresholds = [80, 85, 90, 95, 100];
-    
-    // Find the highest threshold reached
+
     let thresholdReached: number | null = null;
     for (const threshold of alertThresholds.reverse()) {
       if (percentageUsed >= threshold) {
@@ -298,7 +285,6 @@ class StorageBackendService {
       return { alertTriggered: false, thresholdReached: null, alert: null };
     }
 
-    // Determine alert level
     let alertLevel: 'info' | 'warning' | 'critical' = 'warning';
     if (thresholdReached >= 95) {
       alertLevel = 'critical';
@@ -308,7 +294,6 @@ class StorageBackendService {
       alertLevel = 'info';
     }
 
-    // Create message based on severity
     const messages: Record<number, string> = {
       80: `Storage is 80% full. Consider cleaning up unused files.`,
       85: `Storage is 85% full. Running low on space.`,
@@ -319,7 +304,6 @@ class StorageBackendService {
 
     const message = messages[thresholdReached] || `Storage at ${percentageUsed}%`;
 
-    // Record metric and log alert
     await this.recordStorageMetric(usedBytes, totalBytes, totalBytes - usedBytes);
     const alert = await this.logStorageAlert(
       percentageUsed,
@@ -335,7 +319,6 @@ class StorageBackendService {
     };
   }
 
-  // Get storage analytics/trends
   async getStorageTrends(days: number = 30): Promise<{
     averageUsage: number;
     peakUsage: number;
@@ -354,19 +337,13 @@ class StorageBackendService {
         };
       }
 
-      // Calculate average
       const sum = history.reduce((acc, m) => acc + m.current_value, 0);
       const averageUsage = Math.round(sum / history.length);
-
-      // Find peak
       const peakUsage = Math.max(...history.map((m) => m.current_value));
-
-      // Calculate growth rate (compare first and last readings)
       const oldestReading = history[history.length - 1].current_value;
       const newestReading = history[0].current_value;
       const usageGrowthRate = newestReading - oldestReading;
 
-      // Group by date for chart data
       const dailyData = new Map<string, number[]>();
       history.forEach((m) => {
         const date = m.recorded_at.split('T')[0];
@@ -383,32 +360,20 @@ class StorageBackendService {
         }))
         .sort((a, b) => a.date.localeCompare(b.date));
 
-      return {
-        averageUsage,
-        peakUsage,
-        usageGrowthRate,
-        dataPoints,
-      };
+      return { averageUsage, peakUsage, usageGrowthRate, dataPoints };
     } catch (error) {
       console.error('Error getting storage trends:', error);
-      return {
-        averageUsage: 0,
-        peakUsage: 0,
-        usageGrowthRate: 0,
-        dataPoints: [],
-      };
+      return { averageUsage: 0, peakUsage: 0, usageGrowthRate: 0, dataPoints: [] };
     }
   }
 
-  // Register device with Supabase (with validation)
   async registerDevice(): Promise<boolean> {
     try {
-      const userId = await authService.ensureAuthenticated();
+      const userId = this.getUserId();
       const deviceId = await this.getDeviceId();
-      
-      // Validate device ID
+
       deviceIdSchema.parse(deviceId);
-      
+
       let deviceInfo: {
         platform: string;
         model: string | null;
@@ -427,13 +392,12 @@ class StorageBackendService {
           platform: info.platform,
           model: info.model,
           osVersion: info.osVersion,
-          name: info.name?.slice(0, 200) || null, // Enforce max length
+          name: info.name?.slice(0, 200) || null,
         };
       } catch {
         // Use web defaults
       }
 
-      // Upsert device
       const { error } = await supabase
         .from('devices')
         .upsert({
@@ -460,7 +424,6 @@ class StorageBackendService {
     }
   }
 
-  // Get notification settings for storage (with validation)
   async getStorageNotificationSettings(): Promise<{
     isEnabled: boolean;
     thresholdValue: number;
@@ -469,7 +432,6 @@ class StorageBackendService {
     recurringIntervalSeconds: number;
   }> {
     try {
-      await authService.ensureAuthenticated();
       const deviceId = await this.getDeviceId();
 
       const { data, error } = await supabase
@@ -480,7 +442,6 @@ class StorageBackendService {
         .maybeSingle();
 
       if (error || !data) {
-        // Return defaults
         return {
           isEnabled: true,
           thresholdValue: 80,
@@ -509,7 +470,6 @@ class StorageBackendService {
     }
   }
 
-  // Update notification settings for storage (with validation)
   async updateStorageNotificationSettings(settings: {
     isEnabled?: boolean;
     thresholdValue?: number;
@@ -518,10 +478,9 @@ class StorageBackendService {
     recurringIntervalSeconds?: number;
   }): Promise<boolean> {
     try {
-      const userId = await authService.ensureAuthenticated();
+      const userId = this.getUserId();
       const deviceId = await this.getDeviceId();
 
-      // Validate settings
       const validatedSettings = notificationSettingsSchema.parse({
         alert_type: 'storage',
         threshold_value: settings.thresholdValue ?? 80,

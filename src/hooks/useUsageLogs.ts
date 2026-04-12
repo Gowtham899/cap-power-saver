@@ -1,20 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { deviceIdService } from "@/services/deviceIdService";
 import type { UsageLog, UsageLogInsert } from "@/types/database";
 
 export function useUsageLogs(limit = 100) {
-  const { userId } = useAuth();
+  const deviceId = deviceIdService.getDeviceId();
 
   return useQuery({
-    queryKey: ["usage-logs", userId, limit],
+    queryKey: ["usage-logs", deviceId, limit],
     queryFn: async () => {
-      if (!userId) return [];
-
       const { data, error } = await supabase
         .from("usage_logs")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", deviceId)
         .order("created_at", { ascending: false })
         .limit(limit);
 
@@ -25,25 +23,22 @@ export function useUsageLogs(limit = 100) {
 
       return data as UsageLog[];
     },
-    enabled: !!userId,
   });
 }
 
 export function useUsageLogsForChart(days = 30) {
-  const { userId } = useAuth();
+  const deviceId = deviceIdService.getDeviceId();
 
   return useQuery({
-    queryKey: ["usage-logs-chart", userId, days],
+    queryKey: ["usage-logs-chart", deviceId, days],
     queryFn: async () => {
-      if (!userId) return [];
-
       const since = new Date();
       since.setDate(since.getDate() - days);
 
       const { data, error } = await supabase
         .from("usage_logs")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", deviceId)
         .gte("created_at", since.toISOString())
         .order("created_at", { ascending: true });
 
@@ -54,21 +49,18 @@ export function useUsageLogsForChart(days = 30) {
 
       return data as UsageLog[];
     },
-    enabled: !!userId,
   });
 }
 
 export function useInsertUsageLog() {
   const queryClient = useQueryClient();
-  const { userId } = useAuth();
+  const deviceId = deviceIdService.getDeviceId();
 
   return useMutation({
     mutationFn: async (log: Omit<UsageLogInsert, "user_id">) => {
-      if (!userId) throw new Error("Not authenticated");
-
       const { data, error } = await supabase
         .from("usage_logs")
-        .insert({ ...log, user_id: userId })
+        .insert({ ...log, user_id: deviceId })
         .select()
         .single();
 
@@ -80,24 +72,22 @@ export function useInsertUsageLog() {
       return data as UsageLog;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["usage-logs", userId] });
-      queryClient.invalidateQueries({ queryKey: ["usage-logs-chart", userId] });
+      queryClient.invalidateQueries({ queryKey: ["usage-logs", deviceId] });
+      queryClient.invalidateQueries({ queryKey: ["usage-logs-chart", deviceId] });
     },
   });
 }
 
 export function useLatestUsageLog() {
-  const { userId } = useAuth();
+  const deviceId = deviceIdService.getDeviceId();
 
   return useQuery({
-    queryKey: ["usage-log-latest", userId],
+    queryKey: ["usage-log-latest", deviceId],
     queryFn: async () => {
-      if (!userId) return null;
-
       const { data, error } = await supabase
         .from("usage_logs")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", deviceId)
         .order("created_at", { ascending: false })
         .limit(1)
         .single();
@@ -109,6 +99,5 @@ export function useLatestUsageLog() {
 
       return data as UsageLog | null;
     },
-    enabled: !!userId,
   });
 }

@@ -1,35 +1,25 @@
 import { useState, useEffect, useCallback } from "react";
 import { storageBackendService, StorageMetric, StorageAlert } from "@/services/storageBackendService";
 import { deviceService, StorageInfo } from "@/services/deviceService";
-import { useAuth } from "@/hooks/useAuth";
 
 export interface UseStorageBackendReturn {
-  // Current storage info
   storageInfo: StorageInfo;
   loading: boolean;
   error: string | null;
-  
-  // History and alerts
   storageHistory: StorageMetric[];
   storageAlerts: StorageAlert[];
-  
-  // Trends
   trends: {
     averageUsage: number;
     peakUsage: number;
     usageGrowthRate: number;
     dataPoints: { date: string; percentage: number }[];
   };
-  
-  // Actions
   refreshStorage: () => Promise<void>;
   checkAndAlert: () => Promise<void>;
   clearError: () => void;
 }
 
 export function useStorageBackend(): UseStorageBackendReturn {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  
   const [storageInfo, setStorageInfo] = useState<StorageInfo>({
     total: 0,
     used: 0,
@@ -48,30 +38,21 @@ export function useStorageBackend(): UseStorageBackendReturn {
   });
 
   const refreshStorage = useCallback(async () => {
-    if (!isAuthenticated) {
-      console.log('Waiting for authentication...');
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
 
-      // Register device first
       await storageBackendService.registerDevice();
 
-      // Get current storage info
       const info = await deviceService.getStorageInfo();
       setStorageInfo(info);
 
-      // Record metric to Supabase
       await storageBackendService.recordStorageMetric(
         info.used,
         info.total,
         info.available
       );
 
-      // Fetch history and alerts in parallel
       const [history, alerts, trendData] = await Promise.all([
         storageBackendService.getStorageHistory(7, 50),
         storageBackendService.getStorageAlerts(20),
@@ -87,11 +68,9 @@ export function useStorageBackend(): UseStorageBackendReturn {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, []);
 
   const checkAndAlert = useCallback(async () => {
-    if (!isAuthenticated) return;
-
     try {
       const info = await deviceService.getStorageInfo();
       const result = await storageBackendService.checkAndAlertStorage(
@@ -100,11 +79,9 @@ export function useStorageBackend(): UseStorageBackendReturn {
       );
 
       if (result.alertTriggered && result.alert) {
-        // Refresh alerts list
         const alerts = await storageBackendService.getStorageAlerts(20);
         setStorageAlerts(alerts);
-        
-        // Trigger local notification if threshold reached
+
         if (result.thresholdReached) {
           await deviceService.sendStorageNotification(result.thresholdReached);
         }
@@ -112,32 +89,26 @@ export function useStorageBackend(): UseStorageBackendReturn {
     } catch (err) {
       console.error('Error checking storage alerts:', err);
     }
-  }, [isAuthenticated]);
+  }, []);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  // Wait for auth before fetching
   useEffect(() => {
-    if (authLoading) return;
-    
-    if (isAuthenticated) {
+    refreshStorage();
+
+    const interval = setInterval(() => {
       refreshStorage();
+      checkAndAlert();
+    }, 60000);
 
-      // Refresh every 60 seconds
-      const interval = setInterval(() => {
-        refreshStorage();
-        checkAndAlert();
-      }, 60000);
-
-      return () => clearInterval(interval);
-    }
-  }, [isAuthenticated, authLoading, refreshStorage, checkAndAlert]);
+    return () => clearInterval(interval);
+  }, [refreshStorage, checkAndAlert]);
 
   return {
     storageInfo,
-    loading: loading || authLoading,
+    loading,
     error,
     storageHistory,
     storageAlerts,
